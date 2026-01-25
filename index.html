@@ -8,53 +8,42 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f8fafc; }
-        
-        .board-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            padding: 10px;
-            width: 100%;
-        }
-
-        /* Reverted to Auto-Expand with a sensible max-limit */
-        .kanban-column { 
-            min-height: 60px; 
-            max-height: 450px; 
-            overflow-y: auto;
-            border-radius: 4px;
-        }
-        
+        .board-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 10px; width: 100%; }
+        .kanban-column { min-height: 60px; max-height: 450px; overflow-y: auto; border-radius: 4px; }
         .sortable-ghost { opacity: 0.3; background: #dbeafe !important; }
 
         .guest-card { 
             cursor: grab; margin-bottom: 4px; border-radius: 6px; 
             padding: 6px 10px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
-            background: white;
-            touch-action: none;
+            border: 1px solid #e2e8f0; background: white; touch-action: none;
+            position: relative;
+        }
+        
+        /* Highlight for 5+ Guests */
+        .large-party-alert {
+            border: 2px solid #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+        .party-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
-        .table-box { 
-            border: 2px solid #cbd5e1; 
-            border-radius: 8px; 
-            background: white; 
-            padding: 8px; 
-            display: flex;
-            flex-direction: column;
-            transition: all 0.2s ease;
-        }
-
+        .guest-card.hidden-search { display: none !important; }
+        .table-box { border: 2px solid #cbd5e1; border-radius: 8px; background: white; padding: 8px; display: flex; flex-direction: column; }
         .table-label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
         
-        /* Reverting to flexible heights that only grow as needed */
         .size-standard { min-height: 110px; } 
         .size-large { min-height: 150px; }    
         .size-small { min-height: 85px; }     
 
         .status-pending { border-left: 5px solid #94a3b8; }
-        .status-arrived { background-color: #fffbeb; border-left: 5px solid #f59e0b; }
-        .status-seated { background-color: #f0fdf4; border-left: 5px solid #22c55e; }
+        .status-arrived { border-left: 5px solid #f59e0b; }
+        .status-seated { border-left: 5px solid #22c55e; }
 
         #announcementBox { text-align: center; resize: none; border-radius: 12px; }
     </style>
@@ -91,6 +80,10 @@
             </div>
 
             <div class="flex flex-col bg-slate-200/40 p-3 rounded-xl border border-slate-300 shadow-inner h-full min-h-[600px]">
+                <div class="mb-3">
+                    <input type="text" id="searchInput" oninput="searchGuests()" placeholder="SEARCH GUEST NAME..." 
+                    class="w-full p-2 rounded-lg border-2 border-slate-200 text-xs font-bold uppercase outline-none focus:border-blue-400 shadow-sm">
+                </div>
                 <h2 class="text-[10px] font-black text-slate-500 mb-3 text-center uppercase tracking-widest">Waiting List</h2>
                 <div id="unassigned" class="kanban-column flex-grow"></div>
                 <button onclick="clearDay()" class="mt-4 text-[9px] text-slate-400 font-bold uppercase underline">Clear Date</button>
@@ -109,18 +102,19 @@
 
     <div id="modal" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl w-full max-w-[380px] shadow-2xl">
-            <h2 class="text-lg font-black mb-4 uppercase text-slate-800">New Booking</h2>
+            <h2 id="modalTitle" class="text-lg font-black mb-4 uppercase text-slate-800">New Booking</h2>
+            <input type="hidden" id="editCardId">
             <div class="space-y-4">
                 <div class="flex gap-2">
-                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Time</label><input type="time" id="newTime" value="18:00" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
-                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Pax</label><input type="number" id="newSize" placeholder="2" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
+                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
+                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
                 </div>
                 <div><label class="text-[10px] font-bold text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border p-2 rounded-lg text-lg font-black uppercase"></div>
                 <div><label class="text-[10px] font-bold text-slate-400 uppercase">Phone</label><input type="text" id="newPhone" class="w-full border p-2 rounded-lg"></div>
                 <div><label class="text-[10px] font-bold text-slate-400 uppercase">Requests</label><textarea id="newReq" class="w-full border p-2 rounded-lg h-16 text-sm"></textarea></div>
                 <div class="flex gap-2 pt-2">
                     <button onclick="closeModal()" class="flex-1 py-3 text-sm font-bold text-slate-400 uppercase">Cancel</button>
-                    <button onclick="addGuest()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md uppercase">Confirm</button>
+                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md uppercase">Save</button>
                 </div>
             </div>
         </div>
@@ -133,32 +127,38 @@
 
         ids.forEach(id => {
             new Sortable(document.getElementById(id), { 
-                group: 'floor', 
-                animation: 150, 
-                delay: 50, 
-                touchStartThreshold: 5,
-                ghostClass: 'sortable-ghost',
-                onEnd: save 
+                group: 'floor', animation: 150, delay: 50, touchStartThreshold: 5, onEnd: save 
             });
         });
 
-        function openModal() {
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('newTime').value = "18:00";
+        function openModal(editData = null) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            modal.classList.remove('hidden');
+            
+            if (editData) {
+                title.innerText = "Update Booking";
+                document.getElementById('editCardId').value = editData.id;
+                document.getElementById('newName').value = editData.name;
+                document.getElementById('newSize').value = editData.size;
+                document.getElementById('newTime').value = editData.time;
+                document.getElementById('newPhone').value = editData.phone;
+                document.getElementById('newReq').value = editData.req;
+            } else {
+                title.innerText = "New Booking";
+                document.getElementById('editCardId').value = "";
+                document.getElementById('newName').value = "";
+                document.getElementById('newSize').value = "";
+                document.getElementById('newTime').value = "18:00";
+                document.getElementById('newPhone').value = "";
+                document.getElementById('newReq').value = "";
+            }
         }
+
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 
-        function toggleStatus(btn) {
-            const card = btn.closest('.guest-card');
-            const states = ['pending', 'arrived', 'seated'];
-            let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
-            card.dataset.status = next;
-            card.className = `guest-card status-${next}`;
-            btn.innerText = next.toUpperCase();
-            save();
-        }
-
-        function addGuest() {
+        function saveBooking() {
+            const editId = document.getElementById('editCardId').value;
             const data = {
                 name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
                 size: document.getElementById('newSize').value || '?',
@@ -167,20 +167,37 @@
                 req: document.getElementById('newReq').value || '',
                 status: 'pending'
             };
-            renderCard('unassigned', data);
+
+            if (editId) {
+                const oldCard = document.querySelector(`[data-id="${editId}"]`);
+                data.status = oldCard.dataset.status; 
+                const container = oldCard.parentElement.id;
+                oldCard.remove();
+                renderCard(container, data, editId);
+            } else {
+                renderCard('unassigned', data);
+            }
             save(); closeModal();
-            document.querySelectorAll('#modal input, #modal textarea').forEach(i => i.value = '');
         }
 
-        function renderCard(containerId, data) {
+        function renderCard(containerId, data, existingId = null) {
             const div = document.createElement('div');
-            div.className = `guest-card status-${data.status}`;
+            const id = existingId || Date.now().toString();
+            const isLarge = parseInt(data.size) >= 5;
+            
+            div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
+            div.dataset.id = id;
             Object.assign(div.dataset, data);
+            
             div.innerHTML = `
-                <div class="flex justify-between font-black text-xs">
-                    <span>${data.time}</span> <span class="text-blue-600">${data.size}P</span>
+                <div onclick="editCard('${id}')" class="cursor-pointer">
+                    <div class="flex justify-between font-black text-xs">
+                        <span>${data.time}</span> 
+                        <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
+                    </div>
+                    <div class="text-[12px] font-black uppercase truncate mt-1 leading-tight">${data.name}</div>
+                    ${isLarge ? '<div class="text-[8px] font-black text-red-500 uppercase party-badge mt-1">⚠️ Large Party</div>' : ''}
                 </div>
-                <div class="text-[12px] font-black uppercase truncate mt-1 leading-tight">${data.name}</div>
                 <div class="flex gap-1 mt-2">
                     <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded py-0.5 uppercase">${data.status}</button>
                     <button onclick="this.parentElement.parentElement.remove(); save();" class="text-slate-300 px-1 text-[10px]">✕</button>
@@ -189,11 +206,34 @@
             document.getElementById(containerId).appendChild(div);
         }
 
+        function editCard(id) {
+            const card = document.querySelector(`[data-id="${id}"]`);
+            openModal({...card.dataset});
+        }
+
+        function searchGuests() {
+            const query = document.getElementById('searchInput').value.toUpperCase();
+            document.querySelectorAll('.guest-card').forEach(card => {
+                const name = card.dataset.name.toUpperCase();
+                card.classList.toggle('hidden-search', !name.includes(query));
+            });
+        }
+
+        function toggleStatus(btn) {
+            const card = btn.closest('.guest-card');
+            const states = ['pending', 'arrived', 'seated'];
+            let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
+            card.dataset.status = next;
+            card.className = `guest-card status-${next} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
+            btn.innerText = next.toUpperCase();
+            save();
+        }
+
         function saveAnnounce() {
             const val = document.getElementById('announcementBox').value;
-            const db = JSON.parse(localStorage.getItem('rest_v16_meta') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v18_meta') || '{}');
             db[picker.value] = val;
-            localStorage.setItem('rest_v16_meta', JSON.stringify(db));
+            localStorage.setItem('rest_v18_meta', JSON.stringify(db));
         }
 
         function save() {
@@ -204,23 +244,23 @@
                     return {...c.dataset};
                 });
             });
-            const db = JSON.parse(localStorage.getItem('rest_v16') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v18') || '{}');
             db[picker.value] = state;
-            localStorage.setItem('rest_v16', JSON.stringify(db));
+            localStorage.setItem('rest_v18', JSON.stringify(db));
             document.getElementById('totalCovers').innerText = `${total} Guests Total`;
         }
 
         function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v16') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v16_meta') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v18') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v18_meta') || '{}');
             ids.forEach(id => document.getElementById(id).innerHTML = '');
             document.getElementById('announcementBox').value = meta[picker.value] || '';
             const day = db[picker.value];
-            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g)));
+            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
             save();
         }
 
-        function clearDay() { if(confirm("Permanently wipe all bookings for this date?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
+        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
         picker.addEventListener('change', load);
         window.onload = load;
     </script>
