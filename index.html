@@ -16,9 +16,10 @@
         .sortable-ghost { opacity: 0.3; background: #dbeafe !important; }
 
         .guest-card { 
-            cursor: grab; margin-bottom: 6px; border-radius: 8px; 
-            padding: 8px 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: grab; margin-bottom: 8px; border-radius: 12px; 
+            padding: 10px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             border: 1px solid #e2e8f0; background: white; touch-action: none;
+            transition: transform 0.1s;
         }
 
         /* HIDDEN STATUS LOGIC */
@@ -27,26 +28,22 @@
 
         .guest-card.hidden-search { display: none !important; }
 
-        /* BORDER COLORS FOR STATUS */
-        .status-pending { border-left: 6px solid #94a3b8; }
-        .status-confirmed { border-left: 6px solid #3b82f6; } 
-        .status-seated { border-left: 6px solid #22c55e; }    
-        .status-completed { border-left: 6px solid #64748b; } 
-        .status-cancelled { border-left: 6px solid #ef4444; } 
+        /* STATUS STYLING */
+        .status-pending { border-left: 8px solid #94a3b8; }
+        .status-confirmed { border-left: 8px solid #3b82f6; } 
+        .status-seated { border-left: 8px solid #22c55e; }    
+        .status-completed { border-left: 8px solid #64748b; } 
+        .status-cancelled { border-left: 8px solid #ef4444; } 
 
-        .large-party-alert { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
-        .party-badge { animation: pulse 2s infinite; font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .status-btn { font-size: 10px; font-weight: 900; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
 
-        .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 10px; display: flex; flex-direction: column; }
-        .table-label { font-size: 12px; font-weight: 900; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
+        .large-party-alert { border-right: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
         
-        .size-standard { min-height: 120px; } 
-        .size-large { min-height: 160px; }    
-        .size-small { min-height: 90px; }     
-
         #announcementBox { text-align: center; resize: none; border-radius: 12px; }
         @media print { .no-print { display: none !important; } }
+        
+        /* Transition for Menu */
+        .status-menu { transition: all 0.2s ease-out; transform-origin: top; }
     </style>
 </head>
 <body class="p-2">
@@ -85,26 +82,26 @@
 
             <div class="flex flex-col bg-slate-200/50 p-4 rounded-2xl border border-slate-300 shadow-inner h-full min-h-[700px]">
                 <div class="mb-2">
-                    <input type="text" id="searchInput" oninput="searchGuests()" placeholder="🔍 SEARCH NAME OR PHONE..." 
+                    <input type="text" id="searchInput" oninput="searchGuests()" placeholder="🔍 SEARCH..." 
                     class="w-full p-3 rounded-xl border-2 border-slate-200 text-sm font-bold uppercase outline-none focus:border-blue-500 shadow-sm transition-all">
                 </div>
                 <div class="flex items-center justify-between mb-4 px-1">
                     <label class="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4 accent-slate-600">
-                        <span class="text-[10px] font-black text-slate-500 uppercase group-hover:text-slate-800">Show Finished/Cancelled</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase group-hover:text-slate-800">Show Done</span>
                     </label>
                     <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Arrivals</h2>
                 </div>
                 <div id="unassigned" class="kanban-column flex-grow"></div>
-                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today's Data</button>
+                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today</button>
             </div>
 
             <div class="flex flex-col gap-4">
                 <div class="text-[11px] font-black text-emerald-600 text-center uppercase tracking-widest bg-emerald-100/50 py-1.5 rounded-lg border border-emerald-200">Zone B</div>
                 <div class="table-box size-standard"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
                 <div class="table-box size-standard"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-700">B3A (Large)</div><div id="B3A" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-700">B4A (Large)</div><div id="B4A" class="kanban-column"></div></div>
+                <div class="table-box size-large"><div class="table-label text-emerald-700">B3A</div><div id="B3A" class="kanban-column"></div></div>
+                <div class="table-box size-large"><div class="table-label text-emerald-700">B4A</div><div id="B4A" class="kanban-column"></div></div>
                 <div class="table-box size-standard"><div class="table-label">B5</div><div id="B5" class="kanban-column"></div></div>
             </div>
         </div>
@@ -116,25 +113,37 @@
             <input type="hidden" id="editCardId">
             <div class="space-y-5">
                 <div class="flex gap-4">
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold outline-none"></div>
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold outline-none"></div>
                 </div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Phone Number</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Special Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm focus:border-blue-500 outline-none"></textarea></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Phone Number</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm outline-none"></textarea></div>
                 <div class="flex gap-3 pt-4">
                     <button onclick="closeModal()" class="flex-1 py-4 text-xs font-black text-slate-400 uppercase">Cancel</button>
-                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase">Save Changes</button>
+                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase">Save</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="statusMenu" class="fixed inset-0 bg-black/40 hidden z-[60] flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h3 class="text-center font-black text-slate-400 text-[10px] uppercase mb-4 tracking-widest">Update Guest Status</h3>
+            <div id="statusOptions" class="grid grid-cols-1 gap-3">
+                </div>
+            <hr class="my-4 border-slate-100">
+            <button onclick="openEditFromMenu()" class="w-full py-4 bg-slate-100 text-slate-800 rounded-2xl font-black text-sm uppercase mb-2">Edit Guest Info</button>
+            <button onclick="closeStatusMenu()" class="w-full py-4 text-slate-400 font-bold text-sm uppercase">Close</button>
         </div>
     </div>
 
     <script>
         const ids = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3A', 'B4A', 'B5'];
         const picker = document.getElementById('datePicker');
-        picker.value = new Date().toISOString().split('T')[0];
+        let activeCardId = null;
 
+        picker.value = new Date().toISOString().split('T')[0];
         ids.forEach(id => {
             new Sortable(document.getElementById(id), { group: 'floor', animation: 200, delay: 60, touchStartThreshold: 10, onEnd: save });
         });
@@ -195,18 +204,17 @@
             Object.assign(div.dataset, data);
             
             div.innerHTML = `
-                <div onclick="editCard('${id}')">
-                    <div class="flex justify-between font-black text-xs mb-1">
-                        <span>${data.time}</span> 
-                        <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex flex-col">
+                         <span class="text-[10px] font-black text-slate-400 uppercase">${data.time}</span>
+                         <span class="text-lg font-black leading-none uppercase truncate max-w-[120px]">${data.name}</span>
                     </div>
-                    <div class="text-[13px] font-black uppercase truncate leading-tight">${data.name}</div>
-                    ${isLarge ? '<div class="party-badge">⚠️ LARGE PARTY</div>' : ''}
-                    ${data.req ? '<div class="text-[9px] text-slate-400 italic truncate mt-1">★ '+data.req+'</div>' : ''}
+                    <span class="bg-slate-100 px-2 py-1 rounded text-[11px] font-black ${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
                 </div>
-                <div class="flex gap-1 mt-3">
-                    <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded-md py-1 uppercase">${formatStatusLabel(data.status)}</button>
-                    <button onclick="confirmDelete(this)" class="text-slate-300 px-2">✕</button>
+                ${data.req ? '<div class="text-[10px] text-slate-500 italic truncate mb-3">★ '+data.req+'</div>' : ''}
+                <div class="flex justify-between items-center mt-auto">
+                    <button onclick="openStatusMenu('${id}')" class="status-btn bg-slate-800 text-white">${formatStatusLabel(data.status)} ▾</button>
+                    <button onclick="confirmDelete(this)" class="text-slate-300 px-1">✕</button>
                 </div>
             `;
             document.getElementById(containerId).appendChild(div);
@@ -217,8 +225,51 @@
             return status.toUpperCase();
         }
 
-        function editCard(id) {
+        function openStatusMenu(id) {
+            activeCardId = id;
             const card = document.querySelector(`[data-id="${id}"]`);
+            const currentStatus = card.dataset.status;
+            const menu = document.getElementById('statusMenu');
+            const options = document.getElementById('statusOptions');
+            options.innerHTML = '';
+
+            const states = [
+                {id: 'pending', label: 'PENDING', color: 'bg-slate-400'},
+                {id: 'confirmed', label: 'CALL CONFIRMED', color: 'bg-blue-500'},
+                {id: 'seated', label: 'SEATED', color: 'bg-emerald-500'},
+                {id: 'completed', label: 'COMPLETED', color: 'bg-slate-600'},
+                {id: 'cancelled', label: 'CANCELLED', color: 'bg-red-500'}
+            ];
+
+            states.forEach(state => {
+                const btn = document.createElement('button');
+                btn.className = `w-full py-4 ${state.color} text-white rounded-2xl font-black text-sm uppercase ${currentStatus === state.id ? 'ring-4 ring-offset-2 ring-slate-800' : ''}`;
+                btn.innerText = state.label;
+                btn.onclick = () => setStatus(state.id);
+                options.appendChild(btn);
+            });
+
+            menu.classList.remove('hidden');
+        }
+
+        function closeStatusMenu() { document.getElementById('statusMenu').classList.add('hidden'); }
+
+        function setStatus(newStatus) {
+            if (newStatus === 'completed' || newStatus === 'cancelled') {
+                if (!confirm(`Mark as ${newStatus.toUpperCase()}?`)) return;
+            }
+            const card = document.querySelector(`[data-id="${activeCardId}"]`);
+            card.dataset.status = newStatus;
+            card.className = `guest-card status-${newStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
+            const btn = card.querySelector('.status-btn');
+            btn.innerText = formatStatusLabel(newStatus) + " ▾";
+            save();
+            closeStatusMenu();
+        }
+
+        function openEditFromMenu() {
+            const card = document.querySelector(`[data-id="${activeCardId}"]`);
+            closeStatusMenu();
             openModal({...card.dataset});
         }
 
@@ -230,34 +281,15 @@
             });
         }
 
-        function toggleStatus(btn) {
-            const card = btn.closest('.guest-card');
-            const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
-            let currentIndex = states.indexOf(card.dataset.status);
-            let nextIndex = (currentIndex + 1) % states.length;
-            let nextStatus = states[nextIndex];
-
-            // ADDED: Confirmation Logic for the final two states
-            if (nextStatus === 'completed' || nextStatus === 'cancelled') {
-                const confirmed = confirm(`Are you sure you want to mark this as ${nextStatus.toUpperCase()}? It will be hidden from the floor plan.`);
-                if (!confirmed) return; // Stop if user hits "Cancel"
-            }
-
-            card.dataset.status = nextStatus;
-            card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
-            btn.innerText = formatStatusLabel(nextStatus);
-            save();
-        }
-
         function confirmDelete(btn) {
-            if(confirm("Permanently delete this guest? This cannot be undone.")) {
-                btn.parentElement.parentElement.remove();
+            if(confirm("Permanently delete guest?")) {
+                btn.closest('.guest-card').remove();
                 save();
             }
         }
 
         function downloadBackup() {
-            const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
+            const data = { b: localStorage.getItem('rest_v25'), m: localStorage.getItem('rest_v25_meta') };
             const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -269,17 +301,17 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = JSON.parse(e.target.result);
-                localStorage.setItem('rest_v24', data.b);
-                localStorage.setItem('rest_v24_meta', data.m);
+                localStorage.setItem('rest_v25', data.b);
+                localStorage.setItem('rest_v25_meta', data.m);
                 location.reload();
             };
             reader.readAsText(event.target.files[0]);
         }
 
         function saveAnnounce() {
-            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v25_meta') || '{}');
             meta[picker.value] = document.getElementById('announcementBox').value;
-            localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
+            localStorage.setItem('rest_v25_meta', JSON.stringify(meta));
         }
 
         function save() {
@@ -287,19 +319,19 @@
             ids.forEach(id => {
                 state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
                     const s = c.dataset.status;
-                    if (s === 'pending' || s === 'confirmed' || s === 'seated') total += parseInt(c.dataset.size) || 0;
+                    if (s !== 'completed' && s !== 'cancelled') total += parseInt(c.dataset.size) || 0;
                     return {...c.dataset};
                 });
             });
-            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v25') || '{}');
             db[picker.value] = state;
-            localStorage.setItem('rest_v24', JSON.stringify(db));
+            localStorage.setItem('rest_v25', JSON.stringify(db));
             document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
         }
 
         function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v25') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v25_meta') || '{}');
             ids.forEach(id => document.getElementById(id).innerHTML = '');
             document.getElementById('announcementBox').value = meta[picker.value] || '';
             const day = db[picker.value];
@@ -307,7 +339,7 @@
             save();
         }
 
-        function clearDay() { if(confirm("Permanently wipe all bookings for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
+        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
         picker.addEventListener('change', load);
         window.onload = load;
     </script>
