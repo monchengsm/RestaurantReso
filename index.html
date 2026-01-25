@@ -7,215 +7,59 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        body { touch-action: manipulation; -webkit-user-select: none; font-size: 15px; }
-        .kanban-column { min-height: 50px; padding-bottom: 20px; }
+        body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f8fafc; overflow-x: hidden; }
+        
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 10px;
+            width: 100%;
+            align-items: start;
+        }
+
+        /* The Scrollable Area inside the table */
+        .kanban-column { 
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+        }
+        
+        /* Custom scrollbar for a cleaner look */
+        .kanban-column::-webkit-scrollbar { width: 4px; }
+        .kanban-column::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
         .guest-card { 
             cursor: grab; margin-bottom: 6px; border-radius: 6px; 
-            padding: 8px 12px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            border: 1px solid #e2e8f0;
+            padding: 6px 10px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0; background: white; touch-action: none;
         }
-        .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 6px; }
-        .table-label { font-size: 12px; font-weight: 900; color: #475569; margin-bottom: 4px; }
+
+        .table-box { 
+            border: 2px solid #cbd5e1; border-radius: 8px; 
+            background: white; padding: 8px; display: flex; flex-direction: column;
+        }
+
+        .table-label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
         
-        .size-standard { height: 110px; } 
-        .size-large { height: 145px; }    
-        .size-small { height: 90px; }     
+        /* FIXED HEIGHTS for consistent layout */
+        .size-standard { height: 160px; } 
+        .size-large { height: 190px; }    
+        .size-small { height: 120px; }     
 
-        .status-pending { background-color: #ffffff; border-left: 6px solid #94a3b8; }
-        .status-arrived { background-color: #fffbeb; border-left: 6px solid #f59e0b; }
-        .status-seated { background-color: #f0fdf4; border-left: 6px solid #22c55e; }
+        .status-pending { border-left: 5px solid #94a3b8; }
+        .status-arrived { background-color: #fffbeb; border-left: 5px solid #f59e0b; }
+        .status-seated { background-color: #f0fdf4; border-left: 5px solid #22c55e; }
 
-        #announcementBox { text-align: center; line-height: 1.6; padding: 12px; }
-
-        @media print { 
-            .no-print { display: none !important; } 
-            #printArea { display: block !important; }
-            #printAnnounce { display: block; border: 1px solid black; padding: 10px; margin-bottom: 20px; text-align: center; font-weight: bold; }
-        }
+        #announcementBox { text-align: center; resize: none; border-radius: 12px; }
     </style>
 </head>
-<body class="bg-slate-50 p-3 font-sans text-slate-900">
+<body class="p-2">
 
-    <div class="max-w-[100%] mx-auto no-print">
-        <header class="flex justify-between items-center mb-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200">
-            <div class="flex items-center gap-6">
-                <h1 class="font-black italic text-slate-800 tracking-tighter text-2xl uppercase">Reservations</h1>
-                <input type="date" id="datePicker" class="border-2 border-slate-100 p-2 rounded-lg font-bold text-blue-600 text-sm outline-none">
-                <span id="totalCovers" class="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">0 Guests</span>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="window.print()" class="text-slate-500 hover:text-slate-800 px-4 py-2 text-sm font-bold border-2 rounded-lg uppercase">Print</button>
-                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-black text-sm uppercase shadow-md shadow-blue-100">+ Booking</button>
-            </div>
-        </header>
-
-        <div class="mb-4 px-1">
-            <textarea id="announcementBox" oninput="saveAnnounce()" placeholder="DAILY ANNOUNCEMENTS & SPECIAL NOTES" 
-            class="w-full bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 text-base font-black text-yellow-900 placeholder-yellow-300 outline-none focus:border-yellow-400 h-16 resize-none shadow-sm uppercase"></textarea>
-        </div>
-
-        <div class="grid grid-cols-3 gap-6">
-            
-            <div class="space-y-3">
-                <div class="text-xs font-black text-blue-500 text-center uppercase border-b-2 border-blue-100 pb-1">Zone A</div>
-                <div class="table-box size-small"><div class="table-label">A1</div><div id="A1" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A2</div><div id="A2" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A3</div><div id="A3" class="kanban-column"></div></div>
-                <div class="h-1 bg-slate-200 rounded-full mx-4 my-2"></div>
-                <div class="table-box size-small"><div class="table-label">A6</div><div id="A6" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A7</div><div id="A7" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A8</div><div id="A8" class="kanban-column"></div></div>
-            </div>
-
-            <div class="bg-slate-200/50 p-4 rounded-2xl border-2 border-slate-300 border-dashed">
-                <h2 class="text-xs font-black text-slate-500 mb-3 uppercase text-center tracking-widest">Waiting List</h2>
-                <div id="unassigned" class="kanban-column min-h-[700px]"></div>
-                <button onclick="clearDay()" class="w-full mt-4 text-[10px] text-slate-400 hover:text-red-500 font-bold uppercase underline">Clear All Data</button>
-            </div>
-
-            <div class="space-y-3">
-                <div class="text-xs font-black text-emerald-500 text-center uppercase border-b-2 border-emerald-100 pb-1">Zone B</div>
-                <div class="table-box size-standard"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-600">B3A</div><div id="B3A" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-600">B4A</div><div id="B4A" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B5</div><div id="B5" class="kanban-column"></div></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="printArea" class="hidden p-10 font-sans">
-        <h1 id="printDate" class="text-3xl font-bold mb-4"></h1>
-        <div id="printAnnounce" class="mb-6 text-xl border-2 border-black p-4 text-center"></div>
-        <table class="w-full border-collapse border-2 border-black">
-            <thead><tr class="bg-slate-100 font-bold">
-                <td class="border-2 border-black p-2">Table</td><td class="border-2 border-black p-2">Time</td><td class="border-2 border-black p-2">Guest</td><td class="border-2 border-black p-2">Pax</td><td class="border-2 border-black p-2 text-center">Status</td>
-            </tr></thead>
-            <tbody id="printBody"></tbody>
-        </table>
-    </div>
-
-    <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden flex items-center justify-center z-50 p-4 backdrop-blur-md">
-        <div class="bg-white p-6 rounded-2xl w-full max-w-[400px] shadow-2xl border border-slate-100">
-            <h2 class="text-xl font-black mb-5 uppercase tracking-tight border-b-2 pb-2 text-slate-800">New Booking</h2>
-            <div class="space-y-4">
-                <div class="flex gap-3">
-                    <div class="flex-1"><label class="text-[11px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-lg text-base font-bold"></div>
-                    <div class="flex-1"><label class="text-[11px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-lg text-base font-bold"></div>
-                </div>
-                <div><label class="text-[11px] font-black text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-lg text-base font-black uppercase"></div>
-                <div><label class="text-[11px] font-black text-slate-400 uppercase">Phone</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-lg text-base"></div>
-                <div><label class="text-[11px] font-black text-slate-400 uppercase">Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-lg text-sm h-20"></textarea></div>
-                <div class="flex gap-3 pt-2">
-                    <button onclick="closeModal()" class="flex-1 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest">Cancel</button>
-                    <button onclick="addGuest()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black text-sm shadow-lg uppercase tracking-widest">Confirm</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const ids = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3A', 'B4A', 'B5'];
-        const picker = document.getElementById('datePicker');
-        picker.value = new Date().toISOString().split('T')[0];
-
-        ids.forEach(id => {
-            new Sortable(document.getElementById(id), { group: 'floor', animation: 150, delay: 30, onEnd: save });
-        });
-
-        function openModal() { document.getElementById('modal').classList.remove('hidden'); }
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-
-        function toggleStatus(btn) {
-            const card = btn.closest('.guest-card');
-            const states = ['pending', 'arrived', 'seated'];
-            let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
-            card.dataset.status = next;
-            card.className = `guest-card relative status-${next}`;
-            btn.innerText = next.toUpperCase();
-            save();
-        }
-
-        function addGuest() {
-            const data = {
-                name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
-                size: document.getElementById('newSize').value || '?',
-                time: document.getElementById('newTime').value || '--:--',
-                phone: document.getElementById('newPhone').value || '-',
-                req: document.getElementById('newReq').value || '',
-                status: 'pending'
-            };
-            renderCard('unassigned', data);
-            save(); closeModal();
-            document.querySelectorAll('#modal input, #modal textarea').forEach(i => i.value = '');
-        }
-
-        function renderCard(containerId, data) {
-            const div = document.createElement('div');
-            div.className = `guest-card relative status-${data.status}`;
-            Object.assign(div.dataset, data);
-            div.innerHTML = `
-                <div class="flex justify-between font-black text-sm text-slate-800">
-                    <span>${data.time}</span> <span class="text-blue-600">${data.size}P</span>
-                </div>
-                <div class="text-[14px] font-black uppercase truncate mt-1 leading-tight">${data.name}</div>
-                <div class="flex gap-1 mt-2">
-                    <button onclick="toggleStatus(this)" class="flex-1 text-[9px] font-black border-2 border-current rounded py-1 uppercase tracking-tighter">${data.status}</button>
-                    <button onclick="this.parentElement.parentElement.remove(); save();" class="text-slate-300 hover:text-red-500 px-2 text-[12px]">✕</button>
-                </div>
-            `;
-            document.getElementById(containerId).appendChild(div);
-        }
-
-        function saveAnnounce() {
-            const val = document.getElementById('announcementBox').value;
-            const db = JSON.parse(localStorage.getItem('rest_v12_meta') || '{}');
-            db[picker.value] = val;
-            localStorage.setItem('rest_v12_meta', JSON.stringify(db));
-            document.getElementById('printAnnounce').innerText = val;
-        }
-
-        function save() {
-            const state = {}; let total = 0;
-            ids.forEach(id => {
-                state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
-                    total += parseInt(c.dataset.size) || 0;
-                    return {...c.dataset};
-                });
-            });
-            const db = JSON.parse(localStorage.getItem('rest_v12') || '{}');
-            db[picker.value] = state;
-            localStorage.setItem('rest_v12', JSON.stringify(db));
-            document.getElementById('totalCovers').innerText = `${total} Guests Total`;
-            prepPrint();
-        }
-
-        function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v12') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v12_meta') || '{}');
-            ids.forEach(id => document.getElementById(id).innerHTML = '');
-            const announce = meta[picker.value] || '';
-            document.getElementById('announcementBox').value = announce;
-            document.getElementById('printAnnounce').innerText = announce;
-            const day = db[picker.value];
-            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g)));
-            save();
-        }
-
-        function prepPrint() {
-            const body = document.getElementById('printBody');
-            document.getElementById('printDate').innerText = "RESERVATIONS: " + picker.value;
-            body.innerHTML = '';
-            ids.forEach(id => {
-                document.getElementById(id).querySelectorAll('.guest-card').forEach(g => {
-                    body.innerHTML += `<tr><td class="border-2 border-black p-2 text-center font-bold uppercase">${id}</td><td class="border-2 border-black p-2 text-center text-lg">${g.dataset.time}</td><td class="border-2 border-black p-2 font-black uppercase text-lg">${g.dataset.name}</td><td class="border-2 border-black p-2 text-center font-bold text-lg">${g.dataset.size}</td><td class="border-2 border-black p-2 uppercase text-[10px] text-center">${g.dataset.status}</td></tr>`;
-                });
-            });
-        }
-
-        function clearDay() { if(confirm("Permanently wipe all bookings for this date?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
-        picker.addEventListener('change', load);
-        window.onload = load;
-    </script>
-</body>
-</html>
+    <div class="no-print">
+        <header class="flex justify-between items-center mb-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <h1 class="font-black italic text-slate-800 text-xl tracking-tighter uppercase">Reservations</h1>
+                <input type="date" id="datePicker" class="border p-1 rounded font-bold text-blue-600 text-sm outline-none">
+                <span id="totalCovers" class="text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1
