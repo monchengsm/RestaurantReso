@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2325/2325592.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
     <title>Reservation Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -22,7 +20,19 @@
             padding: 8px 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0; background: white; touch-action: none;
         }
+
+        /* HIDDEN STATUS LOGIC */
+        .status-completed, .status-cancelled { display: none; opacity: 0.5; filter: grayscale(1); }
+        body.show-finished .status-completed, body.show-finished .status-cancelled { display: block !important; }
+
         .guest-card.hidden-search { display: none !important; }
+
+        /* BORDER COLORS FOR STATUS */
+        .status-pending { border-left: 6px solid #94a3b8; }
+        .status-confirmed { border-left: 6px solid #3b82f6; } /* Blue for Call Confirmed */
+        .status-seated { border-left: 6px solid #22c55e; }    /* Green */
+        .status-completed { border-left: 6px solid #64748b; } /* Grey */
+        .status-cancelled { border-left: 6px solid #ef4444; } /* Red */
 
         .large-party-alert { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
         .party-badge { animation: pulse 2s infinite; font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase; }
@@ -35,10 +45,6 @@
         .size-large { min-height: 160px; }    
         .size-small { min-height: 90px; }     
 
-        .status-pending { border-left: 6px solid #94a3b8; }
-        .status-arrived { border-left: 6px solid #f59e0b; }
-        .status-seated { border-left: 6px solid #22c55e; }
-
         #announcementBox { text-align: center; resize: none; border-radius: 12px; }
         @media print { .no-print { display: none !important; } }
     </style>
@@ -50,14 +56,14 @@
             <div class="flex items-center gap-5">
                 <h1 class="font-black italic text-slate-800 text-2xl tracking-tighter uppercase">RESERVATIONS</h1>
                 <input type="date" id="datePicker" class="border-2 border-slate-100 p-1.5 rounded-lg font-bold text-blue-600 outline-none">
-                <span id="totalCovers" class="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full uppercase">0 Guests</span>
+                <span id="totalCovers" class="text-xs font-black text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full uppercase">0 ACTIVE GUESTS</span>
             </div>
             <div class="flex gap-3">
                 <button onclick="downloadBackup()" class="bg-emerald-50 text-emerald-700 px-3 py-1.5 text-[10px] font-black border border-emerald-200 rounded-lg uppercase">Backup</button>
                 <button onclick="document.getElementById('fileInput').click()" class="bg-orange-50 text-orange-700 px-3 py-1.5 text-[10px] font-black border border-orange-200 rounded-lg uppercase">Restore</button>
                 <input type="file" id="fileInput" class="hidden" onchange="restoreBackup(event)">
                 <button onclick="window.print()" class="text-slate-400 px-4 py-1.5 text-xs font-bold border rounded-lg uppercase">Print</button>
-                <button onclick="openModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-200">+ New Booking</button>
+                <button onclick="openModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg">+ New Booking</button>
             </div>
         </header>
 
@@ -78,13 +84,19 @@
             </div>
 
             <div class="flex flex-col bg-slate-200/50 p-4 rounded-2xl border border-slate-300 shadow-inner h-full min-h-[700px]">
-                <div class="mb-4">
+                <div class="mb-2">
                     <input type="text" id="searchInput" oninput="searchGuests()" placeholder="🔍 SEARCH NAME OR PHONE..." 
                     class="w-full p-3 rounded-xl border-2 border-slate-200 text-sm font-bold uppercase outline-none focus:border-blue-500 shadow-sm transition-all">
                 </div>
-                <h2 class="text-[11px] font-black text-slate-400 mb-4 text-center uppercase tracking-widest">Waiting List / Arrivals</h2>
+                <div class="flex items-center justify-between mb-4 px-1">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4 accent-slate-600">
+                        <span class="text-[10px] font-black text-slate-500 uppercase group-hover:text-slate-800">Show Finished/Cancelled</span>
+                    </label>
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Arrivals</h2>
+                </div>
                 <div id="unassigned" class="kanban-column flex-grow"></div>
-                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Clear All Data Today</button>
+                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today's Data</button>
             </div>
 
             <div class="flex flex-col gap-4">
@@ -99,20 +111,20 @@
     </div>
 
     <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden flex items-center justify-center z-50 p-4 backdrop-blur-md">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-[400px] shadow-2xl scale-up">
-            <h2 id="modalTitle" class="text-xl font-black mb-6 uppercase text-slate-800 tracking-tight">New Booking</h2>
+        <div class="bg-white p-8 rounded-3xl w-full max-w-[400px] shadow-2xl">
+            <h2 id="modalTitle" class="text-xl font-black mb-6 uppercase text-slate-800 tracking-tight">Booking Info</h2>
             <input type="hidden" id="editCardId">
             <div class="space-y-5">
                 <div class="flex gap-4">
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
                 </div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Phone Number</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase ml-1">Special Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm focus:border-blue-500 outline-none"></textarea></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase focus:border-blue-500 outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Phone Number</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl focus:border-blue-500 outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Special Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm focus:border-blue-500 outline-none"></textarea></div>
                 <div class="flex gap-3 pt-4">
                     <button onclick="closeModal()" class="flex-1 py-4 text-xs font-black text-slate-400 uppercase">Cancel</button>
-                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl uppercase">Confirm</button>
+                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -124,10 +136,10 @@
         picker.value = new Date().toISOString().split('T')[0];
 
         ids.forEach(id => {
-            new Sortable(document.getElementById(id), { 
-                group: 'floor', animation: 200, delay: 60, touchStartThreshold: 10, onEnd: save 
-            });
+            new Sortable(document.getElementById(id), { group: 'floor', animation: 200, delay: 60, touchStartThreshold: 10, onEnd: save });
         });
+
+        function toggleFinished(checkbox) { document.body.classList.toggle('show-finished', checkbox.checked); }
 
         function openModal(editData = null) {
             document.getElementById('modal').classList.remove('hidden');
@@ -162,7 +174,6 @@
                 req: document.getElementById('newReq').value || '',
                 status: 'pending'
             };
-
             if (editId) {
                 const oldCard = document.querySelector(`[data-id="${editId}"]`);
                 data.status = oldCard.dataset.status; 
@@ -194,11 +205,16 @@
                     ${data.req ? '<div class="text-[9px] text-slate-400 italic truncate mt-1">★ '+data.req+'</div>' : ''}
                 </div>
                 <div class="flex gap-1 mt-3">
-                    <button onclick="toggleStatus(this)" class="flex-1 text-[9px] font-black border border-current rounded-md py-1 uppercase">${data.status}</button>
+                    <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded-md py-1 uppercase">${formatStatusLabel(data.status)}</button>
                     <button onclick="this.parentElement.parentElement.remove(); save();" class="text-slate-300 px-2">✕</button>
                 </div>
             `;
             document.getElementById(containerId).appendChild(div);
+        }
+
+        function formatStatusLabel(status) {
+            if (status === 'confirmed') return 'CONFIRMED';
+            return status.toUpperCase();
         }
 
         function editCard(id) {
@@ -209,23 +225,23 @@
         function searchGuests() {
             const query = document.getElementById('searchInput').value.toUpperCase();
             document.querySelectorAll('.guest-card').forEach(card => {
-                const searchString = (card.dataset.name + card.dataset.phone).toUpperCase();
-                card.classList.toggle('hidden-search', !searchString.includes(query));
+                const searchStr = (card.dataset.name + card.dataset.phone).toUpperCase();
+                card.classList.toggle('hidden-search', !searchStr.includes(query));
             });
         }
 
         function toggleStatus(btn) {
             const card = btn.closest('.guest-card');
-            const states = ['pending', 'arrived', 'seated'];
+            const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
             let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
             card.dataset.status = next;
             card.className = `guest-card status-${next} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
-            btn.innerText = next.toUpperCase();
+            btn.innerText = formatStatusLabel(next);
             save();
         }
 
         function downloadBackup() {
-            const data = { b: localStorage.getItem('rest_v20'), m: localStorage.getItem('rest_v20_meta') };
+            const data = { b: localStorage.getItem('rest_v23'), m: localStorage.getItem('rest_v23_meta') };
             const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -237,36 +253,37 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = JSON.parse(e.target.result);
-                localStorage.setItem('rest_v20', data.b);
-                localStorage.setItem('rest_v20_meta', data.m);
+                localStorage.setItem('rest_v23', data.b);
+                localStorage.setItem('rest_v23_meta', data.m);
                 location.reload();
             };
             reader.readAsText(event.target.files[0]);
         }
 
         function saveAnnounce() {
-            const meta = JSON.parse(localStorage.getItem('rest_v20_meta') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v23_meta') || '{}');
             meta[picker.value] = document.getElementById('announcementBox').value;
-            localStorage.setItem('rest_v20_meta', JSON.stringify(meta));
+            localStorage.setItem('rest_v23_meta', JSON.stringify(meta));
         }
 
         function save() {
             const state = {}; let total = 0;
             ids.forEach(id => {
                 state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
-                    total += parseInt(c.dataset.size) || 0;
+                    const s = c.dataset.status;
+                    if (s === 'pending' || s === 'confirmed' || s === 'seated') total += parseInt(c.dataset.size) || 0;
                     return {...c.dataset};
                 });
             });
-            const db = JSON.parse(localStorage.getItem('rest_v20') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v23') || '{}');
             db[picker.value] = state;
-            localStorage.setItem('rest_v20', JSON.stringify(db));
-            document.getElementById('totalCovers').innerText = `${total} TOTAL GUESTS`;
+            localStorage.setItem('rest_v23', JSON.stringify(db));
+            document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
         }
 
         function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v20') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v20_meta') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v23') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v23_meta') || '{}');
             ids.forEach(id => document.getElementById(id).innerHTML = '');
             document.getElementById('announcementBox').value = meta[picker.value] || '';
             const day = db[picker.value];
@@ -274,7 +291,7 @@
             save();
         }
 
-        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
+        function clearDay() { if(confirm("Permanently wipe all bookings for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
         picker.addEventListener('change', load);
         window.onload = load;
     </script>
