@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Ops Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .kanban-column { min-height: 80px; transition: background 0.2s; padding-bottom: 10px; }
+        .guest-card { cursor: grab; font-size: 0.85rem; margin-bottom: 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .table-box { border: 2px solid #cbd5e1; border-radius: 12px; padding: 12px; background: white; }
+        .table-title { font-weight: 800; color: #1e40af; border-bottom: 2px solid #f1f5f9; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        
+        /* Status Colors */
+        .status-pending { background-color: #f1f5f9; color: #64748b; border-left: 6px solid #94a3b8; }
+        .status-arrived { background-color: #fefce8; color: #a16207; border-left: 6px solid #eab308; }
+        .status-seated { background-color: #f0fdf4; color: #15803d; border-left: 6px solid #22c55e; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 p-4 text-slate-900">
+
+    <div class="max-w-[1440px] mx-auto no-print">
+        <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">FLOOR CONTROL</h1>
+                <p class="text-xs font-bold text-slate-400">LOCAL DATA ONLY</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="date" id="datePicker" class="border-2 border-slate-200 p-2 rounded-xl font-bold text-blue-600 outline-none">
+                <button onclick="window.print()" class="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold hover:bg-slate-200">Print List</button>
+                <button onclick="openModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200">+ New Booking</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-6">
+            <div class="col-span-3 space-y-4">
+                <div class="text-center font-black text-blue-700 p-2 bg-blue-50 rounded-lg">ZONE A</div>
+                <div class="table-box"><div class="table-title">A1</div><div id="A1" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-title">A2</div><div id="A2" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-title">A3</div><div id="A3" class="kanban-column"></div></div>
+                <div class="h-1 bg-slate-200 my-4"></div>
+                <div class="table-box"><div class="table-title">A6</div><div id="A6" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-title">A7</div><div id="A7" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-title">A8</div><div id="A8" class="kanban-column"></div></div>
+            </div>
+
+            <div class="col-span-4 bg-slate-200 p-5 rounded-3xl border border-slate-300 shadow-inner">
+                <h2 class="font-black text-slate-500 mb-4 uppercase tracking-widest text-sm">Unassigned Queue</h2>
+                <div id="unassigned" class="kanban-column min-h-[600px]"></div>
+                <button onclick="clearDay()" class="w-full mt-4 text-[10px] text-slate-400 hover:text-red-500 font-bold uppercase underline">Clear All Data</button>
+            </div>
+
+            <div class="col-span-5 space-y-4">
+                <div class="text-center font-black text-emerald-700 p-2 bg-emerald-50 rounded-lg">ZONE B</div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="table-box"><div class="table-title">B1</div><div id="B1" class="kanban-column"></div></div>
+                    <div class="table-box"><div class="table-title">B2</div><div id="B2" class="kanban-column"></div></div>
+                    <div class="table-box"><div class="table-title">B3</div><div id="B3" class="kanban-column"></div></div>
+                    <div class="table-box"><div class="table-title">B4</div><div id="B4" class="kanban-column"></div></div>
+                    <div class="table-box col-span-2"><div class="table-title">B5 (Large)</div><div id="B5" class="kanban-column"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printArea" class="hidden p-8 font-serif">
+        <h1 id="printDate" class="text-2xl font-bold mb-4 border-b-2 border-black pb-2"></h1>
+        <table class="w-full border-collapse border border-black text-sm">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="border border-black p-2">Table</th>
+                    <th class="border border-black p-2">Time</th>
+                    <th class="border border-black p-2">Guest Name</th>
+                    <th class="border border-black p-2">Pax</th>
+                    <th class="border border-black p-2">Phone</th>
+                    <th class="border border-black p-2">Status</th>
+                    <th class="border border-black p-2">Requests</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-slate-900/80 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-3xl w-[400px]">
+            <h2 class="text-xl font-black mb-4">New Reservation</h2>
+            <div class="space-y-3">
+                <input type="text" id="newName" placeholder="Name" class="w-full border p-3 rounded-xl outline-none">
+                <input type="text" id="newPhone" placeholder="Phone" class="w-full border p-3 rounded-xl outline-none">
+                <div class="flex gap-2">
+                    <input type="number" id="newSize" placeholder="Pax" class="w-1/2 border p-3 rounded-xl">
+                    <input type="time" id="newTime" class="w-1/2 border p-3 rounded-xl">
+                </div>
+                <textarea id="newReq" placeholder="Special Requests" class="w-full border p-3 rounded-xl"></textarea>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModal()" class="flex-1 py-3 font-bold text-slate-400">Cancel</button>
+                    <button onclick="addGuest()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tableIds = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3', 'B4', 'B5'];
+        const datePicker = document.getElementById('datePicker');
+        datePicker.value = new Date().toISOString().split('T')[0];
+
+        tableIds.forEach(id => {
+            new Sortable(document.getElementById(id), { group: 'ops', animation: 200, onEnd: saveAllData });
+        });
+
+        function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        function toggleStatus(btn) {
+            const card = btn.closest('.guest-card');
+            const statuses = ['pending', 'arrived', 'seated'];
+            let current = card.dataset.status;
+            let next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
+            
+            card.dataset.status = next;
+            card.className = `guest-card p-4 shadow-sm relative group status-${next}`;
+            btn.innerText = next.toUpperCase();
+            saveAllData();
+        }
+
+        function addGuest() {
+            const data = {
+                name: document.getElementById('newName').value || 'Guest',
+                size: document.getElementById('newSize').value || '?',
+                time: document.getElementById('newTime').value || '--:--',
+                phone: document.getElementById('newPhone').value || '-',
+                req: document.getElementById('newReq').value || '',
+                status: 'pending'
+            };
+            createGuestCard('unassigned', data);
+            saveAllData();
+            closeModal();
+            document.querySelectorAll('#modal input, #modal textarea').forEach(i => i.value = '');
+        }
+
+        function createGuestCard(containerId, data) {
+            const div = document.createElement('div');
+            div.className = `guest-card p-4 shadow-sm relative group status-${data.status}`;
+            Object.assign(div.dataset, data);
+            div.innerHTML = `
+                <div class="flex justify-between font-extrabold items-start">
+                    <span>${data.name} [${data.size}p]</span>
+                    <button onclick="this.parentElement.parentElement.remove(); saveAllData();" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100">✕</button>
+                </div>
+                <div class="text-[10px] font-bold opacity-70 mb-2">${data.time} | ${data.phone}</div>
+                <button onclick="toggleStatus(this)" class="text-[9px] font-black px-2 py-0.5 rounded border border-current uppercase">
+                    ${data.status}
+                </button>
+                ${data.req ? `<div class="mt-2 text-[10px] italic border-t pt-1 border-black/5">"${data.req}"</div>` : ''}
+            `;
+            document.getElementById(containerId).appendChild(div);
+        }
+
+        function saveAllData() {
+            const fullState = {};
+            tableIds.forEach(id => {
+                fullState[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(card => ({...card.dataset}));
+            });
+            const storage = JSON.parse(localStorage.getItem('rest_v3') || '{}');
+            storage[datePicker.value] = fullState;
+            localStorage.setItem('rest_v3', JSON.stringify(storage));
+            preparePrint();
+        }
+
+        function loadData() {
+            const storage = JSON.parse(localStorage.getItem('rest_v3') || '{}');
+            tableIds.forEach(id => document.getElementById(id).innerHTML = '');
+            const dayData = storage[datePicker.value];
+            if (dayData) Object.keys(dayData).forEach(id => dayData[id].forEach(g => createGuestCard(id, g)));
+            preparePrint();
+        }
+
+        function preparePrint() {
+            const tbody = document.getElementById('printTableBody');
+            document.getElementById('printDate').innerText = "Reservation List: " + datePicker.value;
+            tbody.innerHTML = '';
+            tableIds.forEach(id => {
+                document.getElementById(id).querySelectorAll('.guest-card').forEach(g => {
+                    tbody.innerHTML += `<tr>
+                        <td class="border border-black p-1 text-center font-bold">${id}</td>
+                        <td class="border border-black p-1 text-center">${g.dataset.time}</td>
+                        <td class="border border-black p-1">${g.dataset.name}</td>
+                        <td class="border border-black p-1 text-center">${g.dataset.size}</td>
+                        <td class="border border-black p-1">${g.dataset.phone}</td>
+                        <td class="border border-black p-1 text-center text-[10px] uppercase">${g.dataset.status}</td>
+                        <td class="border border-black p-1 text-xs italic">${g.dataset.req}</td>
+                    </tr>`;
+                });
+            });
+        }
+
+        function clearDay() { if(confirm("Clear this day?")) { tableIds.forEach(id => document.getElementById(id).innerHTML = ''); saveAllData(); } }
+        datePicker.addEventListener('change', loadData);
+        window.onload = loadData;
+    </script>
+</body>
+</html>
