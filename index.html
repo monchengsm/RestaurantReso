@@ -3,266 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Reservations Manager</title>
+    
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/616/616430.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>Reservation Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f8fafc; }
+        body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f1f5f9; }
         .board-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 10px; width: 100%; }
-        .kanban-column { min-height: 60px; max-height: 450px; overflow-y: auto; border-radius: 4px; }
+        .kanban-column { min-height: 80px; max-height: 500px; overflow-y: auto; border-radius: 4px; padding: 2px; }
         .sortable-ghost { opacity: 0.3; background: #dbeafe !important; }
 
         .guest-card { 
-            cursor: grab; margin-bottom: 4px; border-radius: 6px; 
-            padding: 6px 10px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: grab; margin-bottom: 6px; border-radius: 8px; 
+            padding: 8px 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0; background: white; touch-action: none;
-            position: relative;
         }
-        
-        /* Highlight for 5+ Guests */
-        .large-party-alert {
-            border: 2px solid #ef4444 !important;
-            background-color: #fef2f2 !important;
-        }
-        .party-badge {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
         .guest-card.hidden-search { display: none !important; }
-        .table-box { border: 2px solid #cbd5e1; border-radius: 8px; background: white; padding: 8px; display: flex; flex-direction: column; }
-        .table-label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+
+        .large-party-alert { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
+        .party-badge { animation: pulse 2s infinite; font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 10px; display: flex; flex-direction: column; }
+        .table-label { font-size: 12px; font-weight: 900; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
         
-        .size-standard { min-height: 110px; } 
-        .size-large { min-height: 150px; }    
-        .size-small { min-height: 85px; }     
-
-        .status-pending { border-left: 5px solid #94a3b8; }
-        .status-arrived { border-left: 5px solid #f59e0b; }
-        .status-seated { border-left: 5px solid #22c55e; }
-
-        #announcementBox { text-align: center; resize: none; border-radius: 12px; }
-    </style>
-</head>
-<body class="p-2">
-
-    <div class="no-print">
-        <header class="flex justify-between items-center mb-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
-            <div class="flex items-center gap-4">
-                <h1 class="font-black italic text-slate-800 text-xl tracking-tighter uppercase">RESERVATIONS</h1>
-                <input type="date" id="datePicker" class="border p-1 rounded font-bold text-blue-600 text-sm outline-none">
-                <span id="totalCovers" class="text-[11px] font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full uppercase">0 Guests</span>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="window.print()" class="text-slate-400 px-3 py-1 text-xs font-bold border rounded-lg uppercase">Print</button>
-                <button onclick="openModal()" class="bg-blue-600 text-white px-5 py-1.5 rounded-lg font-black text-xs uppercase shadow-lg">+ Booking</button>
-            </div>
-        </header>
-
-        <div class="mb-3">
-            <textarea id="announcementBox" oninput="saveAnnounce()" placeholder="DAILY NOTES / SPECIALS" 
-            class="w-full bg-yellow-50 border-2 border-yellow-100 p-2 text-sm font-bold text-yellow-800 h-14 uppercase outline-none focus:border-yellow-300"></textarea>
-        </div>
-
-        <div class="board-container">
-            <div class="flex flex-col gap-3">
-                <div class="text-[10px] font-black text-blue-500 text-center uppercase tracking-widest bg-blue-50 py-1 rounded">Zone A</div>
-                <div class="table-box size-small"><div class="table-label">A1</div><div id="A1" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A2</div><div id="A2" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A3</div><div id="A3" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A6</div><div id="A6" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A7</div><div id="A7" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A8</div><div id="A8" class="kanban-column"></div></div>
-            </div>
-
-            <div class="flex flex-col bg-slate-200/40 p-3 rounded-xl border border-slate-300 shadow-inner h-full min-h-[600px]">
-                <div class="mb-3">
-                    <input type="text" id="searchInput" oninput="searchGuests()" placeholder="SEARCH GUEST NAME..." 
-                    class="w-full p-2 rounded-lg border-2 border-slate-200 text-xs font-bold uppercase outline-none focus:border-blue-400 shadow-sm">
-                </div>
-                <h2 class="text-[10px] font-black text-slate-500 mb-3 text-center uppercase tracking-widest">Waiting List</h2>
-                <div id="unassigned" class="kanban-column flex-grow"></div>
-                <button onclick="clearDay()" class="mt-4 text-[9px] text-slate-400 font-bold uppercase underline">Clear Date</button>
-            </div>
-
-            <div class="flex flex-col gap-3">
-                <div class="text-[10px] font-black text-emerald-500 text-center uppercase tracking-widest bg-emerald-50 py-1 rounded">Zone B</div>
-                <div class="table-box size-standard"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-600">B3A</div><div id="B3A" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-600">B4A</div><div id="B4A" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B5</div><div id="B5" class="kanban-column"></div></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal" class="fixed inset-0 bg-slate-900/60 hidden flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl w-full max-w-[380px] shadow-2xl">
-            <h2 id="modalTitle" class="text-lg font-black mb-4 uppercase text-slate-800">New Booking</h2>
-            <input type="hidden" id="editCardId">
-            <div class="space-y-4">
-                <div class="flex gap-2">
-                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
-                    <div class="flex-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border p-2 rounded-lg text-lg font-bold"></div>
-                </div>
-                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border p-2 rounded-lg text-lg font-black uppercase"></div>
-                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Phone</label><input type="text" id="newPhone" class="w-full border p-2 rounded-lg"></div>
-                <div><label class="text-[10px] font-bold text-slate-400 uppercase">Requests</label><textarea id="newReq" class="w-full border p-2 rounded-lg h-16 text-sm"></textarea></div>
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeModal()" class="flex-1 py-3 text-sm font-bold text-slate-400 uppercase">Cancel</button>
-                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-sm shadow-md uppercase">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const ids = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3A', 'B4A', 'B5'];
-        const picker = document.getElementById('datePicker');
-        picker.value = new Date().toISOString().split('T')[0];
-
-        ids.forEach(id => {
-            new Sortable(document.getElementById(id), { 
-                group: 'floor', animation: 150, delay: 50, touchStartThreshold: 5, onEnd: save 
-            });
-        });
-
-        function openModal(editData = null) {
-            const modal = document.getElementById('modal');
-            const title = document.getElementById('modalTitle');
-            modal.classList.remove('hidden');
-            
-            if (editData) {
-                title.innerText = "Update Booking";
-                document.getElementById('editCardId').value = editData.id;
-                document.getElementById('newName').value = editData.name;
-                document.getElementById('newSize').value = editData.size;
-                document.getElementById('newTime').value = editData.time;
-                document.getElementById('newPhone').value = editData.phone;
-                document.getElementById('newReq').value = editData.req;
-            } else {
-                title.innerText = "New Booking";
-                document.getElementById('editCardId').value = "";
-                document.getElementById('newName').value = "";
-                document.getElementById('newSize').value = "";
-                document.getElementById('newTime').value = "18:00";
-                document.getElementById('newPhone').value = "";
-                document.getElementById('newReq').value = "";
-            }
-        }
-
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-
-        function saveBooking() {
-            const editId = document.getElementById('editCardId').value;
-            const data = {
-                name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
-                size: document.getElementById('newSize').value || '?',
-                time: document.getElementById('newTime').value || '18:00',
-                phone: document.getElementById('newPhone').value || '-',
-                req: document.getElementById('newReq').value || '',
-                status: 'pending'
-            };
-
-            if (editId) {
-                const oldCard = document.querySelector(`[data-id="${editId}"]`);
-                data.status = oldCard.dataset.status; 
-                const container = oldCard.parentElement.id;
-                oldCard.remove();
-                renderCard(container, data, editId);
-            } else {
-                renderCard('unassigned', data);
-            }
-            save(); closeModal();
-        }
-
-        function renderCard(containerId, data, existingId = null) {
-            const div = document.createElement('div');
-            const id = existingId || Date.now().toString();
-            const isLarge = parseInt(data.size) >= 5;
-            
-            div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
-            div.dataset.id = id;
-            Object.assign(div.dataset, data);
-            
-            div.innerHTML = `
-                <div onclick="editCard('${id}')" class="cursor-pointer">
-                    <div class="flex justify-between font-black text-xs">
-                        <span>${data.time}</span> 
-                        <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
-                    </div>
-                    <div class="text-[12px] font-black uppercase truncate mt-1 leading-tight">${data.name}</div>
-                    ${isLarge ? '<div class="text-[8px] font-black text-red-500 uppercase party-badge mt-1">⚠️ Large Party</div>' : ''}
-                </div>
-                <div class="flex gap-1 mt-2">
-                    <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded py-0.5 uppercase">${data.status}</button>
-                    <button onclick="this.parentElement.parentElement.remove(); save();" class="text-slate-300 px-1 text-[10px]">✕</button>
-                </div>
-            `;
-            document.getElementById(containerId).appendChild(div);
-        }
-
-        function editCard(id) {
-            const card = document.querySelector(`[data-id="${id}"]`);
-            openModal({...card.dataset});
-        }
-
-        function searchGuests() {
-            const query = document.getElementById('searchInput').value.toUpperCase();
-            document.querySelectorAll('.guest-card').forEach(card => {
-                const name = card.dataset.name.toUpperCase();
-                card.classList.toggle('hidden-search', !name.includes(query));
-            });
-        }
-
-        function toggleStatus(btn) {
-            const card = btn.closest('.guest-card');
-            const states = ['pending', 'arrived', 'seated'];
-            let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
-            card.dataset.status = next;
-            card.className = `guest-card status-${next} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
-            btn.innerText = next.toUpperCase();
-            save();
-        }
-
-        function saveAnnounce() {
-            const val = document.getElementById('announcementBox').value;
-            const db = JSON.parse(localStorage.getItem('rest_v18_meta') || '{}');
-            db[picker.value] = val;
-            localStorage.setItem('rest_v18_meta', JSON.stringify(db));
-        }
-
-        function save() {
-            const state = {}; let total = 0;
-            ids.forEach(id => {
-                state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
-                    total += parseInt(c.dataset.size) || 0;
-                    return {...c.dataset};
-                });
-            });
-            const db = JSON.parse(localStorage.getItem('rest_v18') || '{}');
-            db[picker.value] = state;
-            localStorage.setItem('rest_v18', JSON.stringify(db));
-            document.getElementById('totalCovers').innerText = `${total} Guests Total`;
-        }
-
-        function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v18') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v18_meta') || '{}');
-            ids.forEach(id => document.getElementById(id).innerHTML = '');
-            document.getElementById('announcementBox').value = meta[picker.value] || '';
-            const day = db[picker.value];
-            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
-            save();
-        }
-
-        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
-        picker.addEventListener('change', load);
-        window.onload = load;
-    </script>
-</body>
-</html>
+        .size-standard { min-height: 120px; } 
+        .size-large { min-height: 160px; }    
+        .size-small { min-height:
