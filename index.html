@@ -83,7 +83,7 @@
                 </div>
                 
                 <div class="flex items-center justify-between mb-4">
-                    <button onclick="sortArrivals()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border border-blue-200 transition-colors">Sort by Time ↓</button>
+                    <button onclick="sortArrivals()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-colors">Sort by Time ↓</button>
                     <label class="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4 accent-slate-600">
                         <span class="text-[10px] font-black text-slate-500 uppercase">Show Finished</span>
@@ -106,4 +106,230 @@
     </div>
 
     <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden flex items-center justify-center z-50 p-4 backdrop-blur-md">
-        <div class="bg-white p-8 rounded-
+        <div class="bg-white p-8 rounded-3xl w-full max-w-[400px] shadow-2xl">
+            <h2 id="modalTitle" class="text-xl font-black mb-6 uppercase text-slate-800">Booking Info</h2>
+            <input type="hidden" id="editCardId">
+            <div class="space-y-5">
+                <div class="flex gap-4">
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold outline-none"></div>
+                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold outline-none"></div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase">Status</label>
+                    <select id="newStatus" class="w-full border-2 border-slate-100 p-3 rounded-xl font-bold outline-none bg-white">
+                        <option value="pending">PENDING</option>
+                        <option value="confirmed">CALL CONFIRMED</option>
+                        <option value="seated">SEATED</option>
+                        <option value="completed">COMPLETED</option>
+                        <option value="cancelled">CANCELLED</option>
+                    </select>
+                </div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Phone</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none"></div>
+                <div><label class="text-[10px] font-black text-slate-400 uppercase">Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm outline-none"></textarea></div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeModal()" class="flex-1 py-4 text-xs font-black text-slate-400 uppercase">Cancel</button>
+                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ids = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3A', 'B4A', 'B5'];
+        const picker = document.getElementById('datePicker');
+        picker.value = new Date().toISOString().split('T')[0];
+
+        ids.forEach(id => {
+            new Sortable(document.getElementById(id), { group: 'floor', animation: 200, delay: 60, touchStartThreshold: 10, onEnd: save });
+        });
+
+        function sortArrivals() {
+            const list = document.getElementById('unassigned');
+            const items = Array.from(list.children);
+            items.sort((a, b) => a.dataset.time.localeCompare(b.dataset.time));
+            items.forEach(item => list.appendChild(item));
+            save();
+        }
+
+        function toggleFinished(checkbox) { document.body.classList.toggle('show-finished', checkbox.checked); }
+
+        function openModal(editData = null) {
+            document.getElementById('modal').classList.remove('hidden');
+            if (editData) {
+                document.getElementById('modalTitle').innerText = "Update Booking";
+                document.getElementById('editCardId').value = editData.id;
+                document.getElementById('newName').value = editData.name;
+                document.getElementById('newSize').value = editData.size;
+                document.getElementById('newTime').value = editData.time;
+                document.getElementById('newPhone').value = editData.phone;
+                document.getElementById('newReq').value = editData.req;
+                document.getElementById('newStatus').value = editData.status;
+            } else {
+                document.getElementById('modalTitle').innerText = "New Booking";
+                document.getElementById('editCardId').value = "";
+                document.getElementById('newName').value = "";
+                document.getElementById('newSize').value = "";
+                document.getElementById('newTime').value = "18:00";
+                document.getElementById('newPhone').value = "";
+                document.getElementById('newReq').value = "";
+                document.getElementById('newStatus').value = "pending";
+            }
+        }
+
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        function saveBooking() {
+            const editId = document.getElementById('editCardId').value;
+            const statusVal = document.getElementById('newStatus').value;
+
+            if (editId && (statusVal === 'completed' || statusVal === 'cancelled')) {
+                const oldCard = document.querySelector(`[data-id="${editId}"]`);
+                if (oldCard && oldCard.dataset.status !== statusVal) {
+                    if (!confirm(`Are you sure you want to mark this as ${statusVal.toUpperCase()}?`)) return;
+                }
+            }
+
+            const data = {
+                name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
+                size: document.getElementById('newSize').value || '?',
+                time: document.getElementById('newTime').value || '18:00',
+                phone: document.getElementById('newPhone').value || '-',
+                req: document.getElementById('newReq').value || '',
+                status: statusVal
+            };
+
+            if (editId) {
+                const oldCard = document.querySelector(`[data-id="${editId}"]`);
+                const container = oldCard.parentElement.id;
+                oldCard.remove();
+                renderCard(container, data, editId);
+            } else {
+                renderCard('unassigned', data);
+            }
+            save(); closeModal(); searchGuests();
+        }
+
+        function renderCard(containerId, data, existingId = null) {
+            const div = document.createElement('div');
+            const id = existingId || Date.now().toString();
+            const isLarge = parseInt(data.size) >= 5;
+            div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
+            div.dataset.id = id;
+            Object.assign(div.dataset, data);
+            
+            div.innerHTML = `
+                <div onclick="editCard('${id}')">
+                    <div class="flex justify-between font-black text-xs mb-1">
+                        <span>${data.time}</span> 
+                        <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
+                    </div>
+                    <div class="text-[13px] font-black uppercase truncate leading-tight">${data.name}</div>
+                    ${isLarge ? '<div class="party-badge">⚠️ LARGE PARTY</div>' : ''}
+                </div>
+                <div class="flex gap-1 mt-3">
+                    <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded-md py-1 uppercase">${formatStatusLabel(data.status)}</button>
+                    <button onclick="confirmCardDelete(this)" class="text-slate-300 px-2">✕</button>
+                </div>
+            `;
+            document.getElementById(containerId).appendChild(div);
+        }
+
+        function formatStatusLabel(status) {
+            return status === 'confirmed' ? 'CONFIRMED' : status.toUpperCase();
+        }
+
+        function editCard(id) {
+            const card = document.querySelector(`[data-id="${id}"]`);
+            openModal({...card.dataset});
+        }
+
+        function searchGuests() {
+            const query = document.getElementById('searchInput').value.trim().toUpperCase();
+            document.querySelectorAll('.guest-card').forEach(card => {
+                const searchStr = (card.dataset.name + " " + card.dataset.phone).toUpperCase();
+                card.classList.toggle('hidden-search', query !== "" && !searchStr.includes(query));
+            });
+        }
+
+        function toggleStatus(btn) {
+            const card = btn.closest('.guest-card');
+            const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
+            let nextIndex = (states.indexOf(card.dataset.status) + 1) % states.length;
+            let nextStatus = states[nextIndex];
+
+            if (nextStatus === 'completed' || nextStatus === 'cancelled') {
+                if (!confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
+            }
+
+            card.dataset.status = nextStatus;
+            card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
+            btn.innerText = formatStatusLabel(nextStatus);
+            save();
+        }
+
+        function confirmCardDelete(btn) {
+            if(confirm("Delete this booking?")) {
+                btn.closest('.guest-card').remove();
+                save();
+            }
+        }
+
+        function downloadBackup() {
+            const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Backup_${picker.value}.json`;
+            a.click();
+        }
+
+        function restoreBackup(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = JSON.parse(e.target.result);
+                localStorage.setItem('rest_v24', data.b);
+                localStorage.setItem('rest_v24_meta', data.m);
+                location.reload();
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        function saveAnnounce() {
+            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
+            meta[picker.value] = document.getElementById('announcementBox').value;
+            localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
+        }
+
+        function save() {
+            const state = {}; let total = 0;
+            ids.forEach(id => {
+                state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
+                    const s = c.dataset.status;
+                    if (s === 'pending' || s === 'confirmed' || s === 'seated') total += parseInt(c.dataset.size) || 0;
+                    return {...c.dataset};
+                });
+            });
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            db[picker.value] = state;
+            localStorage.setItem('rest_v24', JSON.stringify(db));
+            document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
+        }
+
+        function load() {
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
+            ids.forEach(id => document.getElementById(id).innerHTML = '');
+            document.getElementById('announcementBox').value = meta[picker.value] || '';
+            const day = db[picker.value];
+            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
+            save();
+            searchGuests();
+        }
+
+        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
+        picker.addEventListener('change', load);
+        window.onload = load;
+    </script>
+</body>
+</html>
