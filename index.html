@@ -23,6 +23,7 @@
 
         .status-completed, .status-cancelled { display: none; opacity: 0.5; filter: grayscale(1); }
         body.show-finished .status-completed, body.show-finished .status-cancelled { display: block !important; }
+        .guest-card.hidden-search { display: none !important; }
 
         .status-pending { border-left: 6px solid #94a3b8; }
         .status-confirmed { border-left: 6px solid #3b82f6; } 
@@ -37,10 +38,6 @@
         .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 10px; display: flex; flex-direction: column; }
         .table-label { font-size: 12px; font-weight: 900; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
         
-        .size-standard { min-height: 120px; } 
-        .size-large { min-height: 160px; }    
-        .size-small { min-height: 90px; }     
-
         #announcementBox { text-align: center; resize: none; border-radius: 12px; }
         @media print { .no-print { display: none !important; } }
     </style>
@@ -71,252 +68,42 @@
         <div class="board-container">
             <div class="flex flex-col gap-4">
                 <div class="text-[11px] font-black text-blue-600 text-center uppercase tracking-widest bg-blue-100/50 py-1.5 rounded-lg border border-blue-200">Zone A</div>
-                <div class="table-box size-small"><div class="table-label">A1</div><div id="A1" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A2</div><div id="A2" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A3</div><div id="A3" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A6</div><div id="A6" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A7</div><div id="A7" class="kanban-column"></div></div>
-                <div class="table-box size-small"><div class="table-label">A8</div><div id="A8" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A1</div><div id="A1" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A2</div><div id="A2" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A3</div><div id="A3" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A6</div><div id="A6" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A7</div><div id="A7" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">A8</div><div id="A8" class="kanban-column"></div></div>
             </div>
 
             <div class="flex flex-col bg-slate-200/50 p-4 rounded-2xl border border-slate-300 shadow-inner h-full min-h-[700px]">
                 <div class="mb-2">
                     <input type="text" id="searchInput" oninput="searchGuests()" placeholder="🔍 SEARCH..." 
-                    class="w-full p-3 rounded-xl border-2 border-slate-200 text-sm font-bold uppercase outline-none focus:border-blue-500 shadow-sm transition-all">
+                    class="w-full p-3 rounded-xl border-2 border-slate-200 text-sm font-bold uppercase outline-none focus:border-blue-500 shadow-sm">
                 </div>
-                <div class="flex items-center justify-between mb-4 px-1">
+                
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="sortArrivals()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border border-blue-200 transition-colors">Sort by Time ↓</button>
                     <label class="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4 accent-slate-600">
-                        <span class="text-[10px] font-black text-slate-500 uppercase">Show Finished/Cancelled</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase">Show Finished</span>
                     </label>
-                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Arrivals</h2>
                 </div>
+
                 <div id="unassigned" class="kanban-column flex-grow"></div>
-                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today's Data</button>
+                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today</button>
             </div>
 
             <div class="flex flex-col gap-4">
                 <div class="text-[11px] font-black text-emerald-600 text-center uppercase tracking-widest bg-emerald-100/50 py-1.5 rounded-lg border border-emerald-200">Zone B</div>
-                <div class="table-box size-standard"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-700">B3A</div><div id="B3A" class="kanban-column"></div></div>
-                <div class="table-box size-large"><div class="table-label text-emerald-700">B4A</div><div id="B4A" class="kanban-column"></div></div>
-                <div class="table-box size-standard"><div class="table-label">B5</div><div id="B5" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">B3A</div><div id="B3A" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">B4A</div><div id="B4A" class="kanban-column"></div></div>
+                <div class="table-box"><div class="table-label">B5</div><div id="B5" class="kanban-column"></div></div>
             </div>
         </div>
     </div>
 
     <div id="modal" class="fixed inset-0 bg-slate-900/70 hidden flex items-center justify-center z-50 p-4 backdrop-blur-md">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-[400px] shadow-2xl">
-            <h2 id="modalTitle" class="text-xl font-black mb-6 uppercase text-slate-800 tracking-tight">Booking Info</h2>
-            <input type="hidden" id="editCardId">
-            <div class="space-y-5">
-                <div class="flex gap-4">
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Time</label><input type="time" id="newTime" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
-                    <div class="flex-1"><label class="text-[10px] font-black text-slate-400 uppercase">Pax</label><input type="number" id="newSize" class="w-full border-2 border-slate-100 p-3 rounded-xl text-xl font-bold focus:border-blue-500 outline-none"></div>
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">Current Status</label>
-                    <select id="newStatus" class="w-full border-2 border-slate-100 p-3 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none bg-white">
-                        <option value="pending">PENDING</option>
-                        <option value="confirmed">CALL CONFIRMED</option>
-                        <option value="seated">SEATED</option>
-                        <option value="completed">COMPLETED</option>
-                        <option value="cancelled">CANCELLED</option>
-                    </select>
-                </div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Guest Name</label><input type="text" id="newName" class="w-full border-2 border-slate-100 p-3 rounded-xl text-lg font-black uppercase focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Phone Number</label><input type="text" id="newPhone" class="w-full border-2 border-slate-100 p-3 rounded-xl focus:border-blue-500 outline-none"></div>
-                <div><label class="text-[10px] font-black text-slate-400 uppercase">Special Requests</label><textarea id="newReq" class="w-full border-2 border-slate-100 p-3 rounded-xl h-24 text-sm focus:border-blue-500 outline-none"></textarea></div>
-                <div class="flex gap-3 pt-4">
-                    <button onclick="closeModal()" class="flex-1 py-4 text-xs font-black text-slate-400 uppercase">Cancel</button>
-                    <button onclick="saveBooking()" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const ids = ['unassigned', 'A1', 'A2', 'A3', 'A6', 'A7', 'A8', 'B1', 'B2', 'B3A', 'B4A', 'B5'];
-        const picker = document.getElementById('datePicker');
-        picker.value = new Date().toISOString().split('T')[0];
-
-        ids.forEach(id => {
-            new Sortable(document.getElementById(id), { group: 'floor', animation: 200, delay: 60, touchStartThreshold: 10, onEnd: save });
-        });
-
-        function toggleFinished(checkbox) { document.body.classList.toggle('show-finished', checkbox.checked); }
-
-        function openModal(editData = null) {
-            document.getElementById('modal').classList.remove('hidden');
-            if (editData) {
-                document.getElementById('modalTitle').innerText = "Update Booking";
-                document.getElementById('editCardId').value = editData.id;
-                document.getElementById('newName').value = editData.name;
-                document.getElementById('newSize').value = editData.size;
-                document.getElementById('newTime').value = editData.time;
-                document.getElementById('newPhone').value = editData.phone;
-                document.getElementById('newReq').value = editData.req;
-                document.getElementById('newStatus').value = editData.status;
-            } else {
-                document.getElementById('modalTitle').innerText = "New Booking";
-                document.getElementById('editCardId').value = "";
-                document.getElementById('newName').value = "";
-                document.getElementById('newSize').value = "";
-                document.getElementById('newTime').value = "18:00";
-                document.getElementById('newPhone').value = "";
-                document.getElementById('newReq').value = "";
-                document.getElementById('newStatus').value = "pending";
-            }
-        }
-
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-
-        function saveBooking() {
-            const editId = document.getElementById('editCardId').value;
-            const newStatus = document.getElementById('newStatus').value;
-
-            // Safety confirmation inside the edit window
-            if (editId && (newStatus === 'completed' || newStatus === 'cancelled')) {
-                const oldStatus = document.querySelector(`[data-id="${editId}"]`).dataset.status;
-                if (oldStatus !== newStatus) {
-                    if (!confirm(`Are you sure you want to mark this as ${newStatus.toUpperCase()}?`)) return;
-                }
-            }
-
-            const data = {
-                name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
-                size: document.getElementById('newSize').value || '?',
-                time: document.getElementById('newTime').value || '18:00',
-                phone: document.getElementById('newPhone').value || '-',
-                req: document.getElementById('newReq').value || '',
-                status: newStatus
-            };
-
-            if (editId) {
-                const oldCard = document.querySelector(`[data-id="${editId}"]`);
-                const container = oldCard.parentElement.id;
-                oldCard.remove();
-                renderCard(container, data, editId);
-            } else {
-                renderCard('unassigned', data);
-            }
-            save(); closeModal();
-        }
-
-        function renderCard(containerId, data, existingId = null) {
-            const div = document.createElement('div');
-            const id = existingId || Date.now().toString();
-            const isLarge = parseInt(data.size) >= 5;
-            div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
-            div.dataset.id = id;
-            Object.assign(div.dataset, data);
-            
-            div.innerHTML = `
-                <div onclick="editCard('${id}')">
-                    <div class="flex justify-between font-black text-xs mb-1">
-                        <span>${data.time}</span> 
-                        <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
-                    </div>
-                    <div class="text-[13px] font-black uppercase truncate leading-tight">${data.name}</div>
-                    ${isLarge ? '<div class="party-badge">⚠️ LARGE PARTY</div>' : ''}
-                    ${data.req ? '<div class="text-[9px] text-slate-400 italic truncate mt-1">★ '+data.req+'</div>' : ''}
-                </div>
-                <div class="flex gap-1 mt-3">
-                    <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded-md py-1 uppercase">${formatStatusLabel(data.status)}</button>
-                    <button onclick="confirmCardDelete(this)" class="text-slate-300 px-2">✕</button>
-                </div>
-            `;
-            document.getElementById(containerId).appendChild(div);
-        }
-
-        function formatStatusLabel(status) {
-            if (status === 'confirmed') return 'CONFIRMED';
-            return status.toUpperCase();
-        }
-
-        function editCard(id) {
-            const card = document.querySelector(`[data-id="${id}"]`);
-            openModal({...card.dataset});
-        }
-
-        function toggleStatus(btn) {
-            const card = btn.closest('.guest-card');
-            const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
-            let nextIndex = (states.indexOf(card.dataset.status) + 1) % states.length;
-            let nextStatus = states[nextIndex];
-
-            if (nextStatus === 'completed' || nextStatus === 'cancelled') {
-                if (!confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
-            }
-
-            card.dataset.status = nextStatus;
-            card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
-            btn.innerText = formatStatusLabel(nextStatus);
-            save();
-        }
-
-        function confirmCardDelete(btn) {
-            if(confirm("Delete this booking?")) {
-                btn.closest('.guest-card').remove();
-                save();
-            }
-        }
-
-        function downloadBackup() {
-            const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
-            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `Reservations_Backup_${picker.value}.json`;
-            a.click();
-        }
-
-        function restoreBackup(event) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = JSON.parse(e.target.result);
-                localStorage.setItem('rest_v24', data.b);
-                localStorage.setItem('rest_v24_meta', data.m);
-                location.reload();
-            };
-            reader.readAsText(event.target.files[0]);
-        }
-
-        function saveAnnounce() {
-            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
-            meta[picker.value] = document.getElementById('announcementBox').value;
-            localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
-        }
-
-        function save() {
-            const state = {}; let total = 0;
-            ids.forEach(id => {
-                state[id] = Array.from(document.getElementById(id).querySelectorAll('.guest-card')).map(c => {
-                    const s = c.dataset.status;
-                    if (s === 'pending' || s === 'confirmed' || s === 'seated') total += parseInt(c.dataset.size) || 0;
-                    return {...c.dataset};
-                });
-            });
-            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
-            db[picker.value] = state;
-            localStorage.setItem('rest_v24', JSON.stringify(db));
-            document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
-        }
-
-        function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
-            ids.forEach(id => document.getElementById(id).innerHTML = '');
-            document.getElementById('announcementBox').value = meta[picker.value] || '';
-            const day = db[picker.value];
-            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
-            save();
-        }
-
-        function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
-        picker.addEventListener('change', load);
-        window.onload = load;
-    </script>
-</body>
-</html>
+        <div class="bg-white p-8 rounded-
