@@ -91,7 +91,11 @@
                 </div>
 
                 <div id="unassigned" class="kanban-column flex-grow"></div>
-                <button onclick="clearDay()" class="mt-6 text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500">Wipe Today</button>
+                
+                <div class="mt-6 flex flex-col gap-2">
+                    <button onclick="resetToArrivals()" class="w-full bg-slate-800 hover:bg-black text-white py-3 rounded-xl text-[11px] font-black uppercase tracking-tighter shadow-md transition-all">Reset All to Arrivals ↩</button>
+                    <button onclick="clearDay()" class="text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500 py-2">Wipe Today</button>
+                </div>
             </div>
 
             <div class="flex flex-col gap-4">
@@ -152,6 +156,22 @@
             save();
         }
 
+        function resetToArrivals() {
+            if(confirm("Move all guests back to the Arrivals list? This will unassign all tables.")) {
+                const arrivals = document.getElementById('unassigned');
+                ids.forEach(id => {
+                    if (id !== 'unassigned') {
+                        const col = document.getElementById(id);
+                        while (col.firstChild) {
+                            arrivals.appendChild(col.firstChild);
+                        }
+                    }
+                });
+                save();
+                sortArrivals(); // Optional: clean up the list immediately
+            }
+        }
+
         function toggleFinished(checkbox) { document.body.classList.toggle('show-finished', checkbox.checked); }
 
         function openModal(editData = null) {
@@ -182,14 +202,6 @@
         function saveBooking() {
             const editId = document.getElementById('editCardId').value;
             const statusVal = document.getElementById('newStatus').value;
-
-            if (editId && (statusVal === 'completed' || statusVal === 'cancelled')) {
-                const oldCard = document.querySelector(`[data-id="${editId}"]`);
-                if (oldCard && oldCard.dataset.status !== statusVal) {
-                    if (!confirm(`Are you sure you want to mark this as ${statusVal.toUpperCase()}?`)) return;
-                }
-            }
-
             const data = {
                 name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
                 size: document.getElementById('newSize').value || '?',
@@ -198,7 +210,6 @@
                 req: document.getElementById('newReq').value || '',
                 status: statusVal
             };
-
             if (editId) {
                 const oldCard = document.querySelector(`[data-id="${editId}"]`);
                 const container = oldCard.parentElement.id;
@@ -217,7 +228,6 @@
             div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
             div.dataset.id = id;
             Object.assign(div.dataset, data);
-            
             div.innerHTML = `
                 <div onclick="editCard('${id}')" class="space-y-0.5">
                     <div class="flex justify-between font-black text-xs mb-0.5">
@@ -237,9 +247,7 @@
             document.getElementById(containerId).appendChild(div);
         }
 
-        function formatStatusLabel(status) {
-            return status === 'confirmed' ? 'CONFIRMED' : status.toUpperCase();
-        }
+        function formatStatusLabel(status) { return status === 'confirmed' ? 'CONFIRMED' : status.toUpperCase(); }
 
         function editCard(id) {
             const card = document.querySelector(`[data-id="${id}"]`);
@@ -259,23 +267,14 @@
             const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
             let nextIndex = (states.indexOf(card.dataset.status) + 1) % states.length;
             let nextStatus = states[nextIndex];
-
-            if (nextStatus === 'completed' || nextStatus === 'cancelled') {
-                if (!confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
-            }
-
+            if ((nextStatus === 'completed' || nextStatus === 'cancelled') && !confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
             card.dataset.status = nextStatus;
             card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
             btn.innerText = formatStatusLabel(nextStatus);
             save();
         }
 
-        function confirmCardDelete(btn) {
-            if(confirm("Delete this booking?")) {
-                btn.closest('.guest-card').remove();
-                save();
-            }
-        }
+        function confirmCardDelete(btn) { if(confirm("Delete this booking?")) { btn.closest('.guest-card').remove(); save(); } }
 
         function downloadBackup() {
             const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
