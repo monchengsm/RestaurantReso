@@ -29,10 +29,10 @@
 
         /* BORDER COLORS FOR STATUS */
         .status-pending { border-left: 6px solid #94a3b8; }
-        .status-confirmed { border-left: 6px solid #3b82f6; } /* Blue for Call Confirmed */
-        .status-seated { border-left: 6px solid #22c55e; }    /* Green */
-        .status-completed { border-left: 6px solid #64748b; } /* Grey */
-        .status-cancelled { border-left: 6px solid #ef4444; } /* Red */
+        .status-confirmed { border-left: 6px solid #3b82f6; } 
+        .status-seated { border-left: 6px solid #22c55e; }    
+        .status-completed { border-left: 6px solid #64748b; } 
+        .status-cancelled { border-left: 6px solid #ef4444; } 
 
         .large-party-alert { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
         .party-badge { animation: pulse 2s infinite; font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase; }
@@ -206,7 +206,7 @@
                 </div>
                 <div class="flex gap-1 mt-3">
                     <button onclick="toggleStatus(this)" class="flex-1 text-[8px] font-black border border-current rounded-md py-1 uppercase">${formatStatusLabel(data.status)}</button>
-                    <button onclick="this.parentElement.parentElement.remove(); save();" class="text-slate-300 px-2">✕</button>
+                    <button onclick="confirmDelete(this)" class="text-slate-300 px-2">✕</button>
                 </div>
             `;
             document.getElementById(containerId).appendChild(div);
@@ -233,15 +233,31 @@
         function toggleStatus(btn) {
             const card = btn.closest('.guest-card');
             const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
-            let next = states[(states.indexOf(card.dataset.status) + 1) % states.length];
-            card.dataset.status = next;
-            card.className = `guest-card status-${next} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
-            btn.innerText = formatStatusLabel(next);
+            let currentIndex = states.indexOf(card.dataset.status);
+            let nextIndex = (currentIndex + 1) % states.length;
+            let nextStatus = states[nextIndex];
+
+            // ADDED: Confirmation Logic for the final two states
+            if (nextStatus === 'completed' || nextStatus === 'cancelled') {
+                const confirmed = confirm(`Are you sure you want to mark this as ${nextStatus.toUpperCase()}? It will be hidden from the floor plan.`);
+                if (!confirmed) return; // Stop if user hits "Cancel"
+            }
+
+            card.dataset.status = nextStatus;
+            card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
+            btn.innerText = formatStatusLabel(nextStatus);
             save();
         }
 
+        function confirmDelete(btn) {
+            if(confirm("Permanently delete this guest? This cannot be undone.")) {
+                btn.parentElement.parentElement.remove();
+                save();
+            }
+        }
+
         function downloadBackup() {
-            const data = { b: localStorage.getItem('rest_v23'), m: localStorage.getItem('rest_v23_meta') };
+            const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
             const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -253,17 +269,17 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = JSON.parse(e.target.result);
-                localStorage.setItem('rest_v23', data.b);
-                localStorage.setItem('rest_v23_meta', data.m);
+                localStorage.setItem('rest_v24', data.b);
+                localStorage.setItem('rest_v24_meta', data.m);
                 location.reload();
             };
             reader.readAsText(event.target.files[0]);
         }
 
         function saveAnnounce() {
-            const meta = JSON.parse(localStorage.getItem('rest_v23_meta') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
             meta[picker.value] = document.getElementById('announcementBox').value;
-            localStorage.setItem('rest_v23_meta', JSON.stringify(meta));
+            localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
         }
 
         function save() {
@@ -275,15 +291,15 @@
                     return {...c.dataset};
                 });
             });
-            const db = JSON.parse(localStorage.getItem('rest_v23') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
             db[picker.value] = state;
-            localStorage.setItem('rest_v23', JSON.stringify(db));
+            localStorage.setItem('rest_v24', JSON.stringify(db));
             document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
         }
 
         function load() {
-            const db = JSON.parse(localStorage.getItem('rest_v23') || '{}');
-            const meta = JSON.parse(localStorage.getItem('rest_v23_meta') || '{}');
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
             ids.forEach(id => document.getElementById(id).innerHTML = '');
             document.getElementById('announcementBox').value = meta[picker.value] || '';
             const day = db[picker.value];
