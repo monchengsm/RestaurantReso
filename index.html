@@ -10,10 +10,35 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f1f5f9; }
-        .board-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 10px; width: 100%; }
-        .kanban-column { min-height: 80px; max-height: 500px; overflow-y: auto; border-radius: 4px; padding: 2px; }
-        .sortable-ghost { opacity: 0.3; background: #dbeafe !important; }
+        body { touch-action: pan-y; -webkit-user-select: none; font-size: 14px; background-color: #f1f5f9; height: 100vh; overflow: hidden; }
+        
+        /* Main Layout Fix */
+        .board-container { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            padding: 10px; 
+            height: calc(100vh - 180px); /* Adjust based on header/notes height */
+        }
+
+        .kanban-column { 
+            min-height: 80px; 
+            overflow-y: auto; 
+            border-radius: 4px; 
+            padding: 2px; 
+        }
+
+        /* Specific fix for middle pane scrolling */
+        #unassigned {
+            max-height: 100%;
+            overflow-y: auto !important;
+            padding-right: 4px;
+        }
+
+        /* Custom Scrollbar for better UX */
+        #unassigned::-webkit-scrollbar { width: 6px; }
+        #unassigned::-webkit-scrollbar-track { background: transparent; }
+        #unassigned::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
         .guest-card { 
             cursor: grab; margin-bottom: 6px; border-radius: 8px; 
@@ -35,7 +60,7 @@
         .party-badge { animation: pulse 2s infinite; font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 10px; display: flex; flex-direction: column; }
+        .table-box { border: 2px solid #cbd5e1; border-radius: 10px; background: white; padding: 10px; display: flex; flex-direction: column; height: 100%; }
         .table-label { font-size: 12px; font-weight: 900; color: #475569; margin-bottom: 6px; text-transform: uppercase; }
         
         #announcementBox { text-align: center; resize: none; border-radius: 12px; }
@@ -66,8 +91,7 @@
         </div>
 
         <div class="board-container">
-            <div class="flex flex-col gap-4">
-                <div class="text-[11px] font-black text-blue-600 text-center uppercase tracking-widest bg-blue-100/50 py-1.5 rounded-lg border border-blue-200">Zone A</div>
+            <div class="grid grid-rows-6 gap-3 overflow-y-auto pr-1">
                 <div class="table-box"><div class="table-label">A1</div><div id="A1" class="kanban-column"></div></div>
                 <div class="table-box"><div class="table-label">A2</div><div id="A2" class="kanban-column"></div></div>
                 <div class="table-box"><div class="table-label">A3</div><div id="A3" class="kanban-column"></div></div>
@@ -76,13 +100,13 @@
                 <div class="table-box"><div class="table-label">A8</div><div id="A8" class="kanban-column"></div></div>
             </div>
 
-            <div class="flex flex-col bg-slate-200/50 p-4 rounded-2xl border border-slate-300 shadow-inner h-full min-h-[700px]">
+            <div class="flex flex-col bg-slate-200/50 p-4 rounded-2xl border border-slate-300 shadow-inner overflow-hidden">
                 <div class="mb-2">
                     <input type="text" id="searchInput" oninput="searchGuests()" placeholder="🔍 SEARCH..." 
                     class="w-full p-3 rounded-xl border-2 border-slate-200 text-sm font-bold uppercase outline-none focus:border-blue-500 shadow-sm">
                 </div>
                 
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 shrink-0">
                     <button onclick="sortArrivals()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-colors">Sort by Time ↓</button>
                     <label class="flex items-center gap-2 cursor-pointer group">
                         <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4 accent-slate-600">
@@ -90,16 +114,15 @@
                     </label>
                 </div>
 
-                <div id="unassigned" class="kanban-column flex-grow"></div>
+                <div id="unassigned" class="kanban-column flex-grow bg-white/30 rounded-lg p-2"></div>
                 
-                <div class="mt-6 flex flex-col gap-2">
+                <div class="mt-4 shrink-0 flex flex-col gap-2">
                     <button onclick="resetToArrivals()" class="w-full bg-slate-800 hover:bg-black text-white py-3 rounded-xl text-[11px] font-black uppercase tracking-tighter shadow-md transition-all">Reset All to Arrivals ↩</button>
-                    <button onclick="clearDay()" class="text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500 py-2">Wipe Today</button>
+                    <button onclick="clearDay()" class="text-[10px] text-slate-400 font-bold uppercase underline hover:text-red-500 py-1">Wipe Today</button>
                 </div>
             </div>
 
-            <div class="flex flex-col gap-4">
-                <div class="text-[11px] font-black text-emerald-600 text-center uppercase tracking-widest bg-emerald-100/50 py-1.5 rounded-lg border border-emerald-200">Zone B</div>
+            <div class="grid grid-rows-5 gap-3 overflow-y-auto pr-1">
                 <div class="table-box"><div class="table-label">B1</div><div id="B1" class="kanban-column"></div></div>
                 <div class="table-box"><div class="table-label">B2</div><div id="B2" class="kanban-column"></div></div>
                 <div class="table-box"><div class="table-label">B3A</div><div id="B3A" class="kanban-column"></div></div>
@@ -157,18 +180,15 @@
         }
 
         function resetToArrivals() {
-            if(confirm("Move all guests back to the Arrivals list? This will unassign all tables.")) {
+            if(confirm("Move all guests back to Arrivals?")) {
                 const arrivals = document.getElementById('unassigned');
                 ids.forEach(id => {
                     if (id !== 'unassigned') {
                         const col = document.getElementById(id);
-                        while (col.firstChild) {
-                            arrivals.appendChild(col.firstChild);
-                        }
+                        while (col.firstChild) arrivals.appendChild(col.firstChild);
                     }
                 });
-                save();
-                sortArrivals(); // Optional: clean up the list immediately
+                save(); sortArrivals();
             }
         }
 
@@ -201,14 +221,13 @@
 
         function saveBooking() {
             const editId = document.getElementById('editCardId').value;
-            const statusVal = document.getElementById('newStatus').value;
             const data = {
                 name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
                 size: document.getElementById('newSize').value || '?',
                 time: document.getElementById('newTime').value || '18:00',
                 phone: document.getElementById('newPhone').value || '-',
                 req: document.getElementById('newReq').value || '',
-                status: statusVal
+                status: document.getElementById('newStatus').value
             };
             if (editId) {
                 const oldCard = document.querySelector(`[data-id="${editId}"]`);
@@ -236,7 +255,6 @@
                     </div>
                     <div class="text-[13px] font-black uppercase truncate leading-tight">${data.name}</div>
                     <div class="text-[10px] text-slate-500 font-bold">${data.phone}</div>
-                    ${isLarge ? '<div class="party-badge">⚠️ LARGE PARTY</div>' : ''}
                     ${data.req ? '<div class="text-[9px] text-slate-400 italic truncate border-t border-slate-50 mt-1 pt-0.5">★ '+data.req+'</div>' : ''}
                 </div>
                 <div class="flex gap-1 mt-2.5">
@@ -248,11 +266,7 @@
         }
 
         function formatStatusLabel(status) { return status === 'confirmed' ? 'CONFIRMED' : status.toUpperCase(); }
-
-        function editCard(id) {
-            const card = document.querySelector(`[data-id="${id}"]`);
-            openModal({...card.dataset});
-        }
+        function editCard(id) { const card = document.querySelector(`[data-id="${id}"]`); openModal({...card.dataset}); }
 
         function searchGuests() {
             const query = document.getElementById('searchInput').value.trim().toUpperCase();
@@ -265,8 +279,7 @@
         function toggleStatus(btn) {
             const card = btn.closest('.guest-card');
             const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
-            let nextIndex = (states.indexOf(card.dataset.status) + 1) % states.length;
-            let nextStatus = states[nextIndex];
+            let nextStatus = states[(states.indexOf(card.dataset.status) + 1) % states.length];
             if ((nextStatus === 'completed' || nextStatus === 'cancelled') && !confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
             card.dataset.status = nextStatus;
             card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
@@ -275,7 +288,6 @@
         }
 
         function confirmCardDelete(btn) { if(confirm("Delete this booking?")) { btn.closest('.guest-card').remove(); save(); } }
-
         function downloadBackup() {
             const data = { b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta') };
             const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
@@ -284,7 +296,6 @@
             a.download = `Backup_${picker.value}.json`;
             a.click();
         }
-
         function restoreBackup(event) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -295,13 +306,11 @@
             };
             reader.readAsText(event.target.files[0]);
         }
-
         function saveAnnounce() {
             const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
             meta[picker.value] = document.getElementById('announcementBox').value;
             localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
         }
-
         function save() {
             const state = {}; let total = 0;
             ids.forEach(id => {
@@ -316,7 +325,6 @@
             localStorage.setItem('rest_v24', JSON.stringify(db));
             document.getElementById('totalCovers').innerText = `${total} ACTIVE GUESTS`;
         }
-
         function load() {
             const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
             const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
@@ -324,10 +332,8 @@
             document.getElementById('announcementBox').value = meta[picker.value] || '';
             const day = db[picker.value];
             if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
-            save();
-            searchGuests();
+            save(); searchGuests();
         }
-
         function clearDay() { if(confirm("Wipe all data for today?")) { ids.forEach(id => document.getElementById(id).innerHTML = ''); save(); } }
         picker.addEventListener('change', load);
         window.onload = load;
