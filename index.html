@@ -18,34 +18,41 @@
         
         .board-container { 
             display: grid; grid-template-columns: repeat(3, 1fr); 
-            gap: 12px; padding: 8px; flex-grow: 1; min-height: 0; 
+            gap: 12px; padding: 10px; flex-grow: 1; min-height: 0; 
         }
         
         .column-scroll-wrapper { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         
+        /* Main Column Scroll */
         .scroll-inner {
             flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; 
-            padding: 8px 10px;
+            padding: 5px;
         }
 
-        /* COMPACT TABLE BOXES FOR ZONES */
+        /* TABLE BOXES: FIXED MAX HEIGHT + INTERNAL SCROLL */
         .table-box { 
-            border: 2px solid #cbd5e1; border-radius: 10px; 
-            background: white; padding: 6px 8px; margin-bottom: 8px; 
+            border: 2px solid #cbd5e1; border-radius: 12px; 
+            background: white; padding: 6px; margin-bottom: 8px;
+            display: flex; flex-direction: column;
+            max-height: 140px; /* Limits size so all tables fit on iPad */
         }
-        .table-label { font-size: 10px; font-weight: 900; color: #64748b; margin-bottom: 2px; text-transform: uppercase; }
+        .table-label { font-size: 10px; font-weight: 900; color: #64748b; margin-bottom: 2px; text-transform: uppercase; flex-shrink: 0; }
 
-        .kanban-column { min-height: 40px; padding-bottom: 10px; }
+        /* The actual drop zone inside the table box */
+        .kanban-column { 
+            flex-grow: 1; overflow-y: auto; overflow-x: hidden;
+            min-height: 40px; -webkit-overflow-scrolling: touch;
+        }
 
-        /* COMPACT CARDS FOR TABLES */
+        /* COMPACT CARDS FOR ZONES */
         .guest-card { 
             cursor: grab; margin-bottom: 6px; border-radius: 8px; 
-            padding: 8px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            padding: 6px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             border: 1px solid #e2e8f0; background: white; touch-action: none;
         }
         
-        /* Larger margin for the main Arrivals column to keep scrolling easy */
-        #unassigned .guest-card { margin-bottom: 12px; padding: 10px !important; }
+        /* ARRIVALS CARDS (Stay larger for visibility) */
+        #unassigned .guest-card { margin-bottom: 12px; padding: 12px !important; border-radius: 12px; }
 
         .status-completed, .status-cancelled { display: none; opacity: 0.5; filter: grayscale(1); }
         body.show-finished .status-completed, body.show-finished .status-cancelled { display: block !important; }
@@ -104,7 +111,7 @@
                     <button onclick="sortArrivals()" class="bg-blue-600 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase">Sort ↓</button>
                     <label class="flex items-center gap-1 cursor-pointer">
                         <input type="checkbox" id="showFinishedToggle" onchange="toggleFinished(this)" class="w-4 h-4">
-                        <span class="text-[8px] font-black text-slate-500 uppercase">Show Done</span>
+                        <span class="text-[8px] font-black text-slate-500 uppercase">Done</span>
                     </label>
                 </div>
             </div>
@@ -230,14 +237,14 @@
             Object.assign(div.dataset, data);
             div.innerHTML = `
                 <div onclick="editCard('${id}')">
-                    <div class="flex justify-between font-black text-[10px] mb-0.5">
+                    <div class="flex justify-between font-black text-[9px] mb-0.5">
                         <span>${data.time}</span> 
                         <span class="${isLarge ? 'text-red-600' : 'text-blue-600'}">${data.size}P</span>
                     </div>
-                    <div class="text-[12px] font-black uppercase truncate">${data.name}</div>
-                    <div class="text-[10px] text-slate-500 font-bold">${data.phone}</div>
+                    <div class="text-[11px] font-black uppercase truncate">${data.name}</div>
+                    <div class="text-[9px] text-slate-500 font-bold">${data.phone}</div>
                 </div>
-                <div class="flex gap-1 mt-2">
+                <div class="flex gap-1 mt-1.5">
                     <button onclick="toggleStatus(this)" class="flex-1 text-[7px] font-black border border-current rounded-md py-1 uppercase">${data.status.toUpperCase()}</button>
                     <button onclick="confirmCardDelete(this)" class="text-slate-300 px-2 text-lg">×</button>
                 </div>
