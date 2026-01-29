@@ -26,21 +26,18 @@
         .table-label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
         .kanban-column { min-height: 50px; padding-bottom: 20px; }
 
-        /* GUEST CARDS */
         .guest-card { 
             cursor: grab; margin-bottom: 10px; border-radius: 10px; 
             padding: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0; background: white; touch-action: none;
         }
         
-        /* STATUS COLORING */
         .status-pending { border-left: 6px solid #94a3b8; }
         .status-confirmed { border-left: 6px solid #3b82f6; } 
-        .status-seated { border-left: 6px solid #22c55e !important; background-color: #f0fdf4 !important; } /* High Priority Green */
+        .status-seated { border-left: 6px solid #22c55e !important; background-color: #f0fdf4 !important; } 
         .status-completed { border-left: 6px solid #64748b; } 
         .status-cancelled { border-left: 6px solid #ef4444; } 
 
-        /* LARGE PARTY ALERT (Red) - Only applies if NOT SEATED */
         .large-party-alert:not(.status-seated) { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
 
         .status-completed, .status-cancelled { display: none; opacity: 0.5; filter: grayscale(1); }
@@ -69,7 +66,7 @@
 
     <div class="notes-area px-3 pt-2">
         <textarea id="announcementBox" oninput="saveAnnounce()" placeholder="— DAILY NOTES —" 
-        class="w-full bg-amber-50 border-2 border-amber-100 p-2 text-xs font-bold text-amber-900 uppercase outline-none focus:border-amber-300"></textarea>
+        class="w-full bg-amber-50 border-2 border-amber-100 p-2 text-xs font-bold text-amber-900 uppercase outline-none focus:border-amber-300 shadow-inner"></textarea>
     </div>
 
     <div class="board-container">
@@ -193,6 +190,11 @@
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 
         function saveBooking() {
+            const statusVal = document.getElementById('newStatus').value;
+            if (['completed', 'cancelled'].includes(statusVal)) {
+                if (!confirm(`Mark as ${statusVal.toUpperCase()}?`)) return;
+            }
+
             const editId = document.getElementById('editCardId').value;
             const data = {
                 name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
@@ -200,7 +202,7 @@
                 time: document.getElementById('newTime').value || '18:00',
                 phone: document.getElementById('newPhone').value || '-',
                 req: document.getElementById('newReq').value || '',
-                status: document.getElementById('newStatus').value
+                status: statusVal
             };
             if (editId) {
                 const oldCard = document.querySelector(`[data-id="${editId}"]`);
@@ -243,6 +245,11 @@
             const card = btn.closest('.guest-card');
             const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
             let nextStatus = states[(states.indexOf(card.dataset.status) + 1) % states.length];
+            
+            if (['completed', 'cancelled'].includes(nextStatus)) {
+                if (!confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
+            }
+
             card.dataset.status = nextStatus;
             card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
             btn.innerText = nextStatus.toUpperCase();
