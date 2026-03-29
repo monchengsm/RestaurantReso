@@ -50,6 +50,7 @@
         }
 
         #announcementBox { text-align: center; resize: none; border-radius: 10px; height: 48px; }
+        .hidden-search { display: none !important; }
     </style>
 </head>
 <body>
@@ -158,22 +159,22 @@
             if(el) new Sortable(el, { group: 'floor', animation: 150, delay: 100, touchStartThreshold: 15, onEnd: save });
         });
 
-        // WALK IN LOGIC
         function createWalkIn() {
             const now = new Date();
-            const arrivalTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const currentH = now.getHours().toString().padStart(2, '0');
+            const currentM = now.getMinutes().toString().padStart(2, '0');
+            const arrivalTime = `${currentH}:${currentM}`;
             
-            // Add 1h 30m
             now.setMinutes(now.getMinutes() + 90);
-            
-            // Round down to nearest 15 mins
             const minutes = now.getMinutes();
             now.setMinutes(Math.floor(minutes / 15) * 15);
             
-            const untilTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            
+            const untilH = now.getHours();
+            const untilM = now.getMinutes().toString().padStart(2, '0');
+            const timeString = untilM === "00" ? `${untilH}` : `${untilH}:${untilM}`;
+
             const data = {
-                name: `WALKIN UNTIL ${untilTime}`,
+                name: `WALKIN UNTIL ${timeString}`,
                 size: '?',
                 time: arrivalTime,
                 phone: '-',
@@ -183,11 +184,11 @@
 
             renderCard('unassigned', data);
             save();
-            // Scroll unassigned to top to see the new walk-in
             document.getElementById('unassigned').parentElement.scrollTop = 0;
         }
 
         function triggerRestore() { document.getElementById('restoreInput').click(); }
+        
         function handleRestore(input) {
             const file = input.files[0];
             if (!file || !confirm("Overwrite current data?")) return;
@@ -214,15 +215,19 @@
                 document.getElementById('newReq').value = editData.req;
                 document.getElementById('newStatus').value = editData.status || 'pending';
             } else {
+                const now = new Date();
+                const hh = now.getHours().toString().padStart(2, '0');
+                const mm = now.getMinutes().toString().padStart(2, '0');
                 document.getElementById('editCardId').value = "";
                 document.getElementById('newName').value = "";
                 document.getElementById('newSize').value = "";
-                document.getElementById('newTime').value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                document.getElementById('newTime').value = `${hh}:${mm}`;
                 document.getElementById('newPhone').value = "";
                 document.getElementById('newReq').value = "";
                 document.getElementById('newStatus').value = "pending";
             }
         }
+
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 
         function saveBooking() {
@@ -230,7 +235,6 @@
             if (['completed', 'cancelled'].includes(statusVal)) {
                 if (!confirm(`Mark as ${statusVal.toUpperCase()}?`)) return;
             }
-
             const editId = document.getElementById('editCardId').value;
             const data = {
                 name: (document.getElementById('newName').value || 'Guest').toUpperCase(),
@@ -242,9 +246,11 @@
             };
             if (editId) {
                 const oldCard = document.querySelector(`[data-id="${editId}"]`);
-                const containerId = oldCard.parentElement.id;
-                oldCard.remove();
-                renderCard(containerId, data, editId);
+                if(oldCard) {
+                    const containerId = oldCard.parentElement.id;
+                    oldCard.remove();
+                    renderCard(containerId, data, editId);
+                }
             } else {
                 renderCard('unassigned', data);
             }
@@ -260,9 +266,7 @@
             div.className = `guest-card status-${data.status} ${isLarge ? 'large-party-alert' : ''}`;
             div.dataset.id = id;
             Object.assign(div.dataset, data);
-            
             const reqHtml = data.req ? `<div class="req-tag">${data.req}</div>` : '';
-
             div.innerHTML = `
                 <div onclick="editCard('${id}')">
                     <div class="flex justify-between font-black text-[10px] mb-1">
@@ -278,30 +282,25 @@
                     <button onclick="confirmCardDelete(this)" class="text-slate-300 px-2 text-xl">×</button>
                 </div>
             `;
-            // For new walk-ins, put at the top of the unassigned list
-            if (!existingId && containerId === 'unassigned') {
-                container.prepend(div);
-            } else {
-                container.appendChild(div);
-            }
+            if (!existingId && containerId === 'unassigned') { container.prepend(div); } 
+            else { container.appendChild(div); }
         }
 
         function toggleStatus(btn) {
             const card = btn.closest('.guest-card');
             const states = ['pending', 'confirmed', 'seated', 'completed', 'cancelled'];
             let nextStatus = states[(states.indexOf(card.dataset.status) + 1) % states.length];
-            
             if (['completed', 'cancelled'].includes(nextStatus)) {
                 if (!confirm(`Mark as ${nextStatus.toUpperCase()}?`)) return;
             }
-
             card.dataset.status = nextStatus;
             card.className = `guest-card status-${nextStatus} ${parseInt(card.dataset.size) >= 5 ? 'large-party-alert' : ''}`;
             btn.innerText = nextStatus.toUpperCase();
             save();
         }
 
-        function editCard(id) { const card = document.querySelector(`[data-id="${id}"]`); openModal({...card.dataset}); }
+        function editCard(id) { const card = document.querySelector(`[data-id="${id}"]`); if(card) openModal({...card.dataset}); }
+        
         function sortArrivals() {
             const list = document.getElementById('unassigned');
             const items = Array.from(list.children);
@@ -309,18 +308,20 @@
             items.forEach(item => list.appendChild(item));
             save();
         }
+
         function resetToArrivals() {
             if(confirm("Move all back to Arrivals?")) {
                 const arrivals = document.getElementById('unassigned');
                 ids.forEach(id => {
                     if (id !== 'unassigned') {
                         const col = document.getElementById(id);
-                        while (col.firstChild) arrivals.appendChild(col.firstChild);
+                        if(col) while (col.firstChild) arrivals.appendChild(col.firstChild);
                     }
                 });
                 save(); sortArrivals();
             }
         }
+
         function searchGuests() {
             const q = document.getElementById('searchInput').value.trim().toUpperCase();
             document.querySelectorAll('.guest-card').forEach(c => {
@@ -328,13 +329,17 @@
                 c.classList.toggle('hidden-search', q !== "" && !s.includes(q));
             });
         }
+
         function toggleFinished(cb) { document.body.classList.toggle('show-finished', cb.checked); }
+        
         function confirmCardDelete(btn) { if(confirm("Delete?")) { btn.closest('.guest-card').remove(); save(); } }
+        
         function saveAnnounce() {
             const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
             meta[picker.value] = document.getElementById('announcementBox').value;
             localStorage.setItem('rest_v24_meta', JSON.stringify(meta));
         }
+
         function save() {
             const state = {}; let total = 0;
             ids.forEach(id => {
@@ -343,3 +348,34 @@
                     state[id] = Array.from(col.querySelectorAll('.guest-card')).map(c => {
                         if (['pending', 'confirmed', 'seated'].includes(c.dataset.status)) total += parseInt(c.dataset.size) || 0;
                         return {...c.dataset};
+                    });
+                }
+            });
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            db[picker.value] = state;
+            localStorage.setItem('rest_v24', JSON.stringify(db));
+            document.getElementById('totalCovers').innerText = `${total || 0} GUESTS`;
+        }
+
+        function load() {
+            const db = JSON.parse(localStorage.getItem('rest_v24') || '{}');
+            const meta = JSON.parse(localStorage.getItem('rest_v24_meta') || '{}');
+            ids.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ''; });
+            document.getElementById('announcementBox').value = meta[picker.value] || '';
+            const day = db[picker.value];
+            if (day) Object.keys(day).forEach(id => day[id].forEach(g => renderCard(id, g, g.id)));
+            save();
+        }
+
+        function downloadBackup() {
+            const blob = new Blob([JSON.stringify({b: localStorage.getItem('rest_v24'), m: localStorage.getItem('rest_v24_meta')})], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Reservations_Backup.json`; a.click();
+        }
+
+        function clearDay() { if(confirm("Wipe Today?")) { ids.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ''; }); save(); } }
+        
+        picker.addEventListener('change', load);
+        window.onload = load;
+    </script>
+</body>
+</html>
